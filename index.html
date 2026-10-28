@@ -17,6 +17,10 @@
     "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js": "vendor/react-dom.production.min.js"
   };
 </script>
+<!-- 첫 화면을 빨리 — 화면 프로그램(React)과 안내도를 처음부터 함께 받는다. 없으면 dc-runtime 을 다 받은 뒤에야 React 를 받기 시작한다(2026-10-28 사용자: 조금 늦게 열림) -->
+<link rel="preload" href="vendor/react.production.min.js" as="script">
+<link rel="preload" href="vendor/react-dom.production.min.js" as="script">
+<link rel="preload" href="assets/guide-map.webp" as="image">
 <script src="vendor/dc-runtime.js"></script>
 
 </head>
@@ -72,7 +76,7 @@
          <div style="{{ guideZoom }}">
           <!-- 틀을 그림과 똑같은 크기로 잡는다 — 틀이 그림보다 작으면 정원 표시(%)가 글씨보다 위로 밀린다 -->
           <div style="position: relative; flex: none; width: min(100cqw, 100cqh * 1900 / 1344); aspect-ratio: 1900 / 1344; line-height: 0;">
-            <img src="assets/guide-map.jpg" alt="해운대수목원 안내도" style="width: 100%; height: 100%; display: block;">
+            <img src="assets/guide-map.webp" alt="해운대수목원 안내도" style="width: 100%; height: 100%; display: block;">
             <sc-for list="{{ spots }}" as="s" hint-placeholder-count="12">
               <div sc-camel-on-click="{{ s.pick }}" style="{{ s.pos }}">
                 <div style="{{ s.dot }}"></div>
