@@ -36,6 +36,7 @@
 <script src="data/bloom-monthly.js"></script>
 <script src="data/species-info.js"></script>
 <script src="data/species-guide.js"></script>
+<script src="data/roses.js"></script>
 <!-- 평면도는 보류(2026-10-27 사용자: 작업물이 좋아지면 넣기). 다시 켜려면 아래 주석을 풀고 baseTabs에 ["photo", "평면도", "plan"]을 넣는다.
      시범판 그대로는 git 태그 plan-trial-2026-10-27, 보관본은 바탕화면 해운대수목원\평면도_보관_2026.10.27
 <script src="data/plan.js"></script> -->
@@ -255,6 +256,19 @@
               </sc-if>
             </div>
             <div style="padding: 0 20px 20px; display: flex; flex-direction: column; gap: 9px;">
+              <sc-if value="{{ sp.hasRoses }}" hint-placeholder-val="{{ false }}">
+                <!-- 장미원 장미 품종(QField 장미 화단, 2026-10-29 사용자) -->
+                <div style="font-size: 14px; font-weight: 700; color: #1F5E63;">장미원의 장미 품종</div>
+                <div style="font-size: 13px; line-height: 1.6; color: #5C7069;">{{ sp.roseNote }}</div>
+                <div style="display: flex; flex-direction: column; gap: 7px; margin-bottom: 10px;">
+                  <sc-for list="{{ sp.roses }}" as="rz" hint-placeholder-count="3">
+                    <div sc-camel-on-click="{{ rz.pick }}" style="{{ rz.style }}">
+                      <span style="font-size: 15px; font-weight: 500;">{{ rz.name }}</span>
+                      <span style="font-size: 13px; color: #5C7069; white-space: nowrap;">{{ rz.meta }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
               <sc-if value="{{ sp.hasWhere }}" hint-placeholder-val="{{ true }}">
                 <div style="font-size: 14px; font-weight: 700; color: #1F5E63;">이 나무가 있는 주제원</div>
               </sc-if>
@@ -503,10 +517,15 @@ const WALK_MIN = { "가을원": "10", "세움정원": "8", "난대림원": "15",
 
 // 남쪽 운동시설 부지 시설 이름 — 종이 안내도(해운대수목원 리플릿) 이름 그대로, 항공사진 위에만 글자로 단다(2026-10-28 사용자)
 // 좌표는 나무와 같은 상대 좌표(m). 눌리지 않는다. 리플릿 이름 그대로 — 운동장 동쪽 '가족마당'은 수목원 안 주제원 가족마당과 다른 곳이지만 이름은 리플릿대로(사용자)
-const FAC_LABELS = [["주차장", 115.6, 646.6], ["농구장", -3.9, 637.6], ["족구장", 5.1, 595.8], ["게이트볼장", -0.9, 559.9], ["테니스장", -18.9, 455.4], ["배드민턴장", 5.1, 413.5], ["축구장", 91.7, 506.2], ["풋살장", 97.7, 406.4], ["꿈의 놀이터", 187.3, 509.1], ["물의정원", 226.2, 551.0], ["가족마당", 256.1, 467.3], ["잔디마당", 175.4, 341.8], ["파크골프장", 20.0, 300.0], ["대나무군락지", 37.9, 186.4], ["만남의 광장", 31.9, 141.6]];
+// 가족마당 이름표는 물의정원 위 길 건너 북동쪽 빈 잔디 자리로 옮김(2026-10-29 사용자 항공사진 표시)
+const FAC_LABELS = [["주차장", 115.6, 646.6], ["농구장", -3.9, 637.6], ["족구장", 5.1, 595.8], ["게이트볼장", -0.9, 559.9], ["테니스장", -18.9, 455.4], ["배드민턴장", 5.1, 413.5], ["축구장", 91.7, 506.2], ["풋살장", 97.7, 406.4], ["꿈의 놀이터", 187.3, 509.1], ["물의정원", 226.2, 551.0], ["가족마당", 262.4, 398.9], ["잔디마당", 175.4, 341.8], ["파크골프장", 20.0, 300.0], ["대나무군락지", 37.9, 186.4], ["만남의 광장", 31.9, 141.6]];
 
 // facilities printed on the 안내도 that belong to a larger garden and carry no
 // records of their own: label them, but don't let a visitor open a dead panel
+// 장미원 화단을 나타내는 수종 이름 — 그루가 아니라 '화단'으로 센다
+const ROSE = "장미";
+const unitOf = name => name === ROSE ? "화단" : "주";
+
 const INERT = { "미로원": 1, "동백숲": 1, "암석원": 1 };
 
 const SPOT_XY = {};
@@ -661,7 +680,7 @@ class Component extends DCLogic {
       const [k, v] = h.split("=");
       if (!v) return;
       // 위치대장에 없는 이름(잘못된 링크)은 빈 수종 화면을 띄우지 않는다
-      const known = n => { const T = window.TREES_COMPACT; return !T || T.names.includes(n); };
+      const known = n => { const T = window.TREES_COMPACT; return !T || T.names.includes(n) || (n === ROSE && !!window.ROSES); };
       if (k === "수종" && known(v)) this.setState({ species: v, query: "", pv: null });
       else if (k === "정원" && SPOT_XY[v] && !INERT[v]) this.setState({ garden: v, species: null, query: "" });
     };
@@ -745,6 +764,7 @@ class Component extends DCLogic {
     if (window.SPECIES && window.GARDEN_INFO && (!this._info || (window.SPECIES_GUIDE && !this._info.merged)))
       this._info = { SPECIES: this.mergeGuide(window.SPECIES, window.SPECIES_GUIDE), GARDEN_INFO: window.GARDEN_INFO, merged: !!window.SPECIES_GUIDE };
     if (window.TREES_COMPACT && !this._raw) { this._raw = window.TREES_COMPACT; this.applyData(); }
+    else if (window.ROSES && this._raw && !(this._roseOf && this._roseOf.size)) this.applyData();
     else this.forceUpdate();
     const done = window.TREES_COMPACT && window.SPECIES && window.BLOOM_SURVEY && window.BLOOM_GUIDE && window.PHOTO_CREDITS && window.BLOOM_MONTH;
     if (!done && n < 150) setTimeout(() => this._waitData(n + 1), 100);
@@ -753,10 +773,24 @@ class Component extends DCLogic {
   applyData() {
     // 미확정 나무(확인불가·이름 없음 등)는 data/trees.js 에 아예 들어 있지 않다 —
     // tools/make_public_trees.ps1 이 공개용 파일을 만들 때 뺀다
-    const data = this.mergePublic(this._raw);
+    const data = this.addRoses(this.mergePublic(this._raw));
     buildRemap(data);
     this._hulls = this.buildHulls(data);
     this.setState({ data }, () => { this.draw(); this.forceUpdate(); });
+  }
+
+  // 장미원 장미: 장미는 나무 점이 아니라 화단(면)에 품종이 적혀 있어 나무 자료에 없다.
+  // 화단마다 가운데 한 점을 '장미'로 장미원에 더하고, 그 화단 품종은 this._roseOf 로 기억한다(2026-10-29 사용자: 장미원은 장미가 다 들어가야)
+  addRoses(base) {
+    const R = window.ROSES; this._roseOf = new Map();
+    if (!R || !R.beds) return base;
+    const names = base.names.slice(), gardens = base.gardens.slice();
+    if (!names.includes(ROSE)) names.push(ROSE);
+    if (!gardens.includes("장미원")) gardens.push("장미원");
+    const n = names.indexOf(ROSE), g = gardens.indexOf("장미원");
+    const rows = base.d.slice();
+    for (const [x, y, cvs] of R.beds) { const r = [x, y, g, n, 0]; rows.push(r); this._roseOf.set(r, cvs); }
+    return Object.assign({}, base, { d: rows, names, gardens });
   }
 
   mergePublic(base) {
@@ -1075,6 +1109,8 @@ class Component extends DCLogic {
       // 정원을 하나 짚었으면 그 정원에 있는 그 수종만 남긴다
       const w = this.state.spWhere;
       if (w) { const inG = rows.filter(r => this.labelOf(r) === w); if (inG.length) rows = inG; }
+      const rc = sp === ROSE && this.state.roseSel;
+      if (rc) rows = rows.filter(r => (this._roseOf.get(r) || []).includes(rc));
       return rows;
     }
     // 항공사진은 개체 단위 — 고른 한 그루만 표시하고 전시원 전체를 붉게 칠하지 않는다
@@ -1084,9 +1120,11 @@ class Component extends DCLogic {
   }
 
   // ── 확대·축소·이동 ─────────────────────────────────────────────
-  // 배율은 1(전체)~6배. 이동량은 화면 밖으로 지도를 빼내지 못하도록 가둔다
+  // 배율은 1(전체)~6배, 항공사진은 10배. 이동량은 화면 밖으로 지도를 빼내지 못하도록 가둔다
+  // 항공사진은 빽빽한 나무 점을 하나씩 누르기 쉽게 10배까지 — 6배를 넘으면 배경 사진은 흐려지지만 점은 또렷하다(2026-10-29 사용자)
+  maxZoom() { return this.state.base === "photo" ? 10 : 6; }
   navFix(n) {
-    const k = Math.max(this.homeZoom(), Math.min(6, n.k));
+    const k = Math.max(this.homeZoom(), Math.min(this.maxZoom(), n.k));
     const el = this.mapRef.current;
     const cw = el ? el.clientWidth : 0, ch = el ? el.clientHeight : 0;
     let mx = (cw * (k - 1)) / 2, my = (ch * (k - 1)) / 2;
@@ -1155,7 +1193,7 @@ class Component extends DCLogic {
     const n = from || this.state.nav, b = el.getBoundingClientRect();
     const ax = (cx == null ? b.width / 2 : cx - b.left) - b.width / 2;
     const ay = (cy == null ? b.height / 2 : cy - b.top) - b.height / 2;
-    const k = Math.max(this.homeZoom(), Math.min(6, n.k * f)), r = k / n.k;
+    const k = Math.max(this.homeZoom(), Math.min(this.maxZoom(), n.k * f)), r = k / n.k;
     this.setNav({ k, tx: ax - (ax - n.tx) * r, ty: ay - (ay - n.ty) * r });
   }
   zoomIn = () => this.zoomAt(1.7);
@@ -1770,11 +1808,13 @@ class Component extends DCLogic {
       ? [...counts.entries()].filter(([n]) => n.includes(q)).sort((a, b) => b[1] - a[1])
       : [];
     const results = hits.slice(0, 30);
+    const roseHits = q && window.ROSES && q !== ROSE
+      ? Object.keys(window.ROSES.cv).filter(c => c.includes(q) || ("장미 '" + c + "'").includes(q)).slice(0, 20) : [];
 
     const mark = h => { if (location.hash !== "#" + h) history.replaceState(null, "", "#" + h); };
     // 수종을 고르면 개체 선택은 버린다 — 두 선택이 지도에 동시에 남아 있으면
     // 무엇이 골라진 건지 알 수 없다
-    const pickSpecies = name => () => { mark("수종=" + encodeURIComponent(name)); this.setState({ species: name, query: "", tree: null, spWhere: null, pv: null }); };
+    const pickSpecies = name => () => { mark("수종=" + encodeURIComponent(name)); this.setState({ species: name, query: "", tree: null, spWhere: null, pv: null, roseSel: null }); };
     // 같은 정원을 다시 누르면 선택을 풀고 수목원 전체 안내로 돌아간다
     const pickGarden = name => e => {
       // 표식은 지도 위에 얹혀 있으므로 배경의 해제 처리까지 올라가지 않게 막는다
@@ -1803,6 +1843,7 @@ class Component extends DCLogic {
     let td = null;
     if (tRow && d) {
       const tname = tRow[3] >= 0 ? d.names[tRow[3]] : "미확인 수종";
+      const tcv = this._roseOf && this._roseOf.get(tRow);
       const e = (info.SPECIES && info.SPECIES[tname]) || {};
       // 대장 구역 이름(초식동물원·고사식물덩굴원 등 예전 이름)이 아니라 2026 안내도 이름으로 보여 준다(2026-10-24).
       // 안내도에 없는 녹지대·운동시설·교통섬은 '녹지대'로 적는다
@@ -1819,10 +1860,10 @@ class Component extends DCLogic {
       const seq = kin.indexOf(tRow) + 1;
       td = {
         no: seq > 0 ? "· " + seq + "번" : "",
-        name: tname, sci: e.sci || "학명 정리 중", sciParts: this.sciParts(e.sci || "학명 정리 중"),
+        name: tcv ? tcv.map(c => "장미 '" + c + "'").join(", ") : tname, sci: e.sci || "학명 정리 중", sciParts: this.sciParts(e.sci || "학명 정리 중"),
         desc: e.lead || e.desc || "", hasDesc: !!(e.lead || e.desc),
         garden: tg || "녹지대",
-        sameN: same ? same.toLocaleString() + "주" : "기록 정리 중",
+        sameN: same ? same.toLocaleString() + unitOf(tname) : "기록 정리 중",
         facts: [
           { k: "주제원", v: tg || "녹지대" },
           { k: "과", v: e.fam || "—" },
@@ -1866,7 +1907,10 @@ class Component extends DCLogic {
       if (e.bloom) facts.push({ k: "시기", v: e.bloom });
       if (e.origin) facts.push({ k: "원산지", v: e.origin });
       // 위치도에 아직 없는 나무(올해 심은 나무 등)는 0주 대신 준비 중이라고 알린다
-      facts.push({ k: "등록 수목", v: counts.get(name) ? counts.get(name).toLocaleString() + "주" : "위치 정보 준비 중" });
+      const roseCv = name === ROSE && window.ROSES ? window.ROSES.cv : null;
+      facts.push(roseCv
+        ? { k: "장미원", v: Object.keys(roseCv).length + "품종 · " + (counts.get(name) || 0) + "화단" }
+        : { k: "등록 수목", v: counts.get(name) ? counts.get(name).toLocaleString() + "주" : "위치 정보 준비 중" });
       sp = {
         name, sci: e.sci || "학명 정리 중", sciParts: this.sciParts(e.sci || "학명 정리 중"), fam: e.fam || "",
         // 출처가 없는 수종은 출처 줄을 아예 숨긴다 — "출처 확인 전"을 관람객에게 보이지 않는다(2026-10-24)
@@ -1900,9 +1944,9 @@ class Component extends DCLogic {
           }),
         // 주제원 밖에만 있는 나무(부용·뿔남천 등)는 빈 제목을 보이지 않는다
         // 안내도에 있는 주제원만 목록에 넣는다 — 녹지대·운동시설·교통섬은 주제원이 아니라 '녹지대'로 합쳐 적는다(2026-10-24 사용자: 녹지대라고 표현)
-        hasWhere: mainG.length > 0,
+        hasWhere: mainG.length > 0 || otherN > 0,
         // 안내도에서 볼 때만 — 항공사진에서는 이미 붉은 점이 보인다
-        hasPhotoBtn: mainG.length > 0 && this.state.base !== "photo",
+        hasPhotoBtn: (mainG.length > 0 || otherN > 0) && this.state.base !== "photo",
         // 누르면 지도가 바로 보이게 위로 올린다 — 휴대폰은 지도 아래에 설명이 이어져 버튼이 화면 아래쪽에 있다(2026-10-28 사용자)
         toPhoto: () => {
           this.setState({ base: "photo", layer: "ortho", spWhere: null, nav: { k: this.startZoom(), tx: 0, ty: 0 } });
@@ -1910,23 +1954,36 @@ class Component extends DCLogic {
           setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 50);
         },
         // 목록은 많은 순 6곳까지 — 나머지 주제원과 주제원 밖 나무는 한 줄로 합쳐 숫자가 맞게 한다
-        hasOther: otherN > 0 || surveyN > 0 || noZoneN > 0 || mainG.length > 6,
-        otherNote: (mainG.length ? "그 밖에 " : "") + [
+        // 녹지대는 목록에 한 줄로 넣는다(2026-10-29 사용자: 누리장나무처럼 새소리원·녹지대에 있으면 녹지대도 보이게)
+        hasOther: surveyN > 0 || noZoneN > 0 || mainG.length > 6,
+        otherNote: (mainG.length || otherN ? "그 밖에 " : "") + [
           mainG.length > 6 ? "다른 주제원 " + (mainG.length - 6) + "곳 " + mainG.slice(6).reduce((a, [, n]) => a + n, 0).toLocaleString() + "주" : "",
-          otherN ? "녹지대 " + otherN.toLocaleString() + "주" : "",
           surveyN ? "조성·조사 중인 주제원 " + surveyN.toLocaleString() + "주" : "",
           noZoneN ? "구역 정리 중 " + noZoneN.toLocaleString() + "주" : ""
         ].filter(Boolean).join(", "),
         // 한두 그루뿐인 곳은 고사·이식으로 현장에 없을 수 있다 — 관람객이 헛걸음하지 않게 미리 알린다
         // 전체 5그루 미만인 수종만 '등록 수목' 바로 아래에 한 줄 알린다(사용자 문구 그대로, 2026-10-27)
-        hasLowNote: counts.get(name) > 0 && counts.get(name) < 5,
+        hasLowNote: name !== ROSE && counts.get(name) > 0 && counts.get(name) < 5,
+        // 장미 품종 목록 — 누르면 항공사진에서 그 품종 화단만 붉게(다시 누르면 전체)
+        hasRoses: !!roseCv,
+        roseNote: roseCv ? "품종을 누르면 항공사진에서 그 장미가 심긴 화단을 보여 드려요. 화단 기록은 " + window.ROSES.src + " 기준이라 지금과 다를 수 있어요." : "",
+        roses: roseCv ? Object.keys(roseCv).sort((a, b) => a.localeCompare(b, "ko")).map(c => {
+          const on = this.state.roseSel === c, v = roseCv[c] || {};
+          const nb = [...this._roseOf.values()].filter(cv => cv.includes(c)).length;
+          return {
+            name: "장미 '" + c + "'",
+            meta: [v.origin, v.breeder].filter(Boolean).join(" · ") + (nb > 1 ? (v.origin || v.breeder ? " · " : "") + nb + "화단" : ""),
+            pick: () => this.setState({ roseSel: on ? null : c, base: "photo", layer: "ortho" }, () => setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 50)),
+            style: { ...rowBtn, background: on ? "#FBE4EA" : rowBtn.background, borderColor: on ? "#D97A93" : "#E2E9E4" }
+          };
+        }) : [],
         where: mainG.slice(0, 6).map(([gname, n]) => {
           const list = rows.filter(r => this.labelOf(r) === gname);
           const mx = list.reduce((a, r) => a + r[0], 0) / list.length;
           const my = list.reduce((a, r) => a + r[1], 0) / list.length;
           const on = this.state.spWhere === gname;
           return {
-            name: gname, meta: n.toLocaleString() + "주 · 도보 " + this.walkFor(gname, mx, my),
+            name: gname, meta: n.toLocaleString() + unitOf(name) + " · 도보 " + this.walkFor(gname, mx, my),
             // 그루 수가 적은 곳에 '찾기 어려울 수 있어요'를 붙이지 않는다 — 찾아가라고 만든 안내라
             // 연구사님 의견(2026-10-26)으로 뺐다. 고사·이식 안내는 '등록 수목' 아래 한 줄(hasLowNote)로만 한다
             // 정원을 누르면 수종 선택을 유지한 채 그 정원의 그 나무들만 항공사진에 짚어준다
@@ -1935,9 +1992,13 @@ class Component extends DCLogic {
             // 바뀌면 관람객이 방금 보던 위치를 잃는다
             // 목록은 읽기만 한다 — 눌러도 안내도에 새로 보이는 게 없어 헷갈렸다(2026-10-28 사용자).
             // 나무 위치는 이름 아래 '자세한 현장 위치 보기'로
-            style: { ...rowBtn, cursor: "default" }
+            style: { ...rowBtn, cursor: "default" },
+            n
           };
-        })
+        }).concat(otherN ? [{
+          // 녹지대는 여러 곳에 흩어져 있어 도보 시간 없이 그루 수만
+          name: "녹지대", meta: otherN.toLocaleString() + "주", style: { ...rowBtn, cursor: "default" }, n: otherN
+        }] : []).sort((a, b) => b.n - a.n)
       };
     }
 
@@ -2024,7 +2085,7 @@ class Component extends DCLogic {
             + (info.GARDEN_INFO[name] || info.GARDEN_INFO[(SPOTS.find(s => s.id === name) || {}).src] || "수목원을 이루는 곳."),
         // 전체 화면에는 그루 수를 보이지 않는다 — 전시원을 골랐을 때만 보인다
         stats: [
-          ...(all ? [] : [{ k: "등록 수목", v: rows.length ? rows.length.toLocaleString() + "주" : (d ? (/조성/.test(SURVEYING[name] || "") ? "조성 중" : "조사 중") : "…") }]),
+          ...(all ? [] : [{ k: "등록 수목", v: rows.length ? rows.filter(r => !(this._roseOf && this._roseOf.has(r))).length.toLocaleString() + "주" : (d ? (/조성/.test(SURVEYING[name] || "") ? "조성 중" : "조사 중") : "…") }]),
           // 수목원 전체 화면에서는 걷는 시간을 보이지 않는다 — 주제원을 골랐을 때만(2026-10-27 사용자)
           ...(all ? [] : [{ k: "안내소에서", v: "도보 " + this.walkFor(name, mx, my) }])
         ],
@@ -2088,7 +2149,7 @@ class Component extends DCLogic {
           whiteSpace: "nowrap", boxSizing: "border-box"
         },
         species: top.map(([n, c]) => ({
-          name: n, n: c.toLocaleString() + "주", pick: pickSpecies(n), style: rowBtn
+          name: n, n: c.toLocaleString() + unitOf(n), pick: pickSpecies(n), style: rowBtn
         }))
       };
     }
@@ -2249,7 +2310,8 @@ class Component extends DCLogic {
             ? "빈 곳을 누르면 선택이 해제됩니다"
             : "주제원을 눌러 그곳의 수종을 확인하세요")
         : (treeMode && !this.state.species ? (td ? td.name + " · 다른 점을 누르면 그 나무로 바뀝니다" : "점을 누르면 그 나무가 무엇인지 알려줍니다 · 끌어서 옆을 볼 수 있어요")
-          : (viewSpecies ? (this.state.spWhere ? this.state.spWhere + "에 있는 " + this.state.species + " 위치를 붉은 점으로 표시했습니다" : this.state.species + " 위치를 붉은 점으로 표시했습니다")
+          : (viewSpecies ? (this.state.spWhere ? this.state.spWhere + "에 있는 " + this.state.species + " 위치를 붉은 점으로 표시했습니다"
+              : (this.state.species === ROSE && this.state.roseSel ? "장미 '" + this.state.roseSel + "' 화단을 붉은 점으로 표시했습니다" : this.state.species + " 위치를 붉은 점으로 표시했습니다"))
             : this.state.garden ? ((SPOTS.find(s => s.id === this.state.garden) || {}).name || this.state.garden) + " · 다시 누르면 선택이 해제됩니다"
                                 : "주제원을 눌러 안내를 확인하세요")),
       spots: SPOTS.map(s => {
@@ -2273,7 +2335,7 @@ class Component extends DCLogic {
           // 지도 위에 겹쳐 쓰면 정작 가려야 할 안내도 글씨를 덮는다.
           // 고른 정원 하나만 주수를 보여준다
           hasCount: pickedSp,
-          count: spN.toLocaleString() + "주",
+          count: spN.toLocaleString() + unitOf(this.state.species),
           countStyle: {
             position: "absolute", left: "50%", top: "34px", transform: "translateX(-50%)",
             whiteSpace: "nowrap", background: "#fff", color: "#B03A22",
@@ -2316,19 +2378,23 @@ class Component extends DCLogic {
       hasQuery: !!q,
       onQuery: e => this.setState({ query: e.target.value }),
       clearQuery: () => this.setState({ query: "" }),
-      showResults: results.length > 0,
+      showResults: results.length + roseHits.length > 0,
       // 찾는 이름이 없을 때 아무것도 안 뜨면 고장인 줄 안다 — 없다고 알려 준다
-      noResults: !!q && results.length === 0,
-      resultCount: "검색 결과 " + hits.length + "종"
+      noResults: !!q && results.length + roseHits.length === 0,
+      resultCount: "검색 결과 " + hits.length + "종" + (roseHits.length ? " · 장미 품종 " + roseHits.length + "가지" : "")
         + (hits.length > results.length ? " · 개체수가 많은 30종을 먼저 보여드립니다" : ""),
       results: results.map(([n, c]) => ({
-        name: n, n: c.toLocaleString() + "주", pick: pickSpecies(n), style: rowBtn
-      })),
+        name: n, n: c.toLocaleString() + unitOf(n), pick: pickSpecies(n), style: rowBtn
+      })).concat(roseHits.map(c => ({
+        name: "장미 '" + c + "'", n: "장미원",
+        pick: () => { mark("수종=" + encodeURIComponent(ROSE)); this.setState({ species: ROSE, roseSel: c, query: "", tree: null, spWhere: null, pv: null }); },
+        style: rowBtn
+      }))),
       viewTree: !!td,
       viewSpecies: viewSpecies && !td,
       viewGarden: !viewSpecies && !td,
       td: td || { no: "", name: "", sci: "", sciParts: [], desc: "", hasDesc: false, garden: "", sameN: "", facts: [], btn: {}, toSpecies: null, toGarden: null, hasGarden: false },
-      sp: sp || { name: "", sci: "", sciParts: [], fam: "", leaf: "", hasLeaf: false, desc: "", hasDesc: false, facts: [], where: [],
+      sp: sp || { name: "", hasRoses: false, roses: [], roseNote: "", sci: "", sciParts: [], fam: "", leaf: "", hasLeaf: false, desc: "", hasDesc: false, facts: [], where: [],
         lead: "", hasLead: false, flag: "", hasFlag: false, tip: "", hasTip: false, vs: "", hasVs: false, hasParts: false, parts: [] },
       gd: gd || { name: "", desc: "", stats: [], hasList: false, empty: false, emptyNote: "", species: [], listTitle: "", listCount: "", canExpand: false, noExpand: false, expandLabel: "", toggleList: null, expandBtn: {}, hasNow: false, hasCal: false, noNow: false, noNowNote: "", nowTitle: "", nowNote: "", now: [], months: [], hasMonths: false },
       nameStyle: {

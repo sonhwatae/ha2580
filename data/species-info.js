@@ -21,6 +21,8 @@ const SPECIES = {
   "먼나무": { sci: "Ilex rotunda", fam: "감탕나무과" },
   "소나무": { sci: "Pinus densiflora", fam: "소나무과" },
   "팽나무": { sci: "Celtis sinensis", fam: "느릅나무과" },
+  // 장미원 장미(원예품종 묶음) — 국가표준식물목록은 품종마다 Rosa '품종명'(장미속)으로 적는다(2026-10-29)
+  "장미": { sci: "Rosa", fam: "장미과" },
   "벚나무": { sci: "Prunus serrulata", fam: "장미과" },
   "단풍나무": { sci: "Acer palmatum", fam: "단풍나무과" },
   "낙우송": { sci: "Taxodium distichum", fam: "낙우송과" },
