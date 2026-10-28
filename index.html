@@ -1,0 +1,2427 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%231F5E63%22/%3E%3Cpath d=%22M16 6c5 0 8 4 8 8s-3 7-8 7-8-3-8-7 3-8 8-8z%22 fill=%22%23CFE3C8%22/%3E%3Crect x=%2215%22 y=%2219%22 width=%222%22 height=%228%22 fill=%22%23CFE3C8%22/%3E%3C/svg%3E">
+<title>해운대수목원 수목 안내</title>
+<meta name="description" content="해운대수목원 안내도와 항공사진에서 주제원과 나무를 눌러 수종 정보와 이달의 볼거리를 확인하는 안내 페이지">
+<!-- 카카오톡·문자로 주소를 보낼 때 보이는 미리보기. 공개 주소가 정해지면 og:image(대표 사진 전체 주소)도 넣는다 -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="해운대수목원 수목 안내">
+<meta property="og:description" content="안내도와 항공사진으로 주제원과 나무를 찾아보고, 이달의 볼거리를 확인하세요.">
+<meta name="theme-color" content="#1F5E63">
+<script>
+  // React를 인터넷(unpkg)에서 받지 않고 vendor 폴더의 파일을 쓰도록 연결 — 오프라인 키오스크에서도 동작
+  window.__resources = {
+    "https://unpkg.com/react@18.3.1/umd/react.production.min.js": "vendor/react.production.min.js",
+    "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js": "vendor/react-dom.production.min.js"
+  };
+</script>
+<script src="vendor/dc-runtime.js"></script>
+
+</head>
+<body>
+<x-dc>
+<helmet>
+<script src="data/trees.js"></script>
+<script src="data/bloom-survey.js"></script>
+<script src="data/bloom-guide.js"></script>
+<script src="data/photo-credits.js"></script>
+<script src="data/photos.js"></script>
+<script src="data/sci-format.js"></script>
+<script src="data/bloom-monthly.js"></script>
+<script src="data/species-info.js"></script>
+<script src="data/species-guide.js"></script>
+<!-- 평면도는 보류(2026-10-27 사용자: 작업물이 좋아지면 넣기). 다시 켜려면 아래 주석을 풀고 baseTabs에 ["photo", "평면도", "plan"]을 넣는다.
+     시범판 그대로는 git 태그 plan-trial-2026-10-27, 보관본은 바탕화면 해운대수목원\평면도_보관_2026.10.27
+<script src="data/plan.js"></script> -->
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #F4F7F4; }
+  body { font-family: "Apple SD Gothic Neo", "Malgun Gothic", "맑은 고딕", "Noto Sans KR", sans-serif; -webkit-font-smoothing: antialiased; color: #1A2621; }
+  a { color: #1F5E63; text-decoration: none; }
+  a:hover { color: #143f43; }
+  * { box-sizing: border-box; }
+  input { font-family: inherit; }
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-thumb { background: #C8D6CF; border-radius: 5px; }
+</style>
+</helmet>
+<div ref="{{ shellRef }}" style="{{ shell }}">
+
+  <div style="{{ header }}">
+    <div style="display: flex; align-items: center; gap: 14px; min-width: 0;">
+      <div style="{{ titleStyle }}">해운대수목원 수목 안내</div>
+      <div style="{{ subtitleStyle }}">부산광역시 공립수목원</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px; flex: none;">
+      <sc-for list="{{ baseTabs }}" as="b" hint-placeholder-count="2">
+        <div sc-camel-on-click="{{ b.pick }}" style="{{ b.style }}">{{ b.label }}</div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="{{ body }}">
+
+    <div ref="{{ mapRef }}" style="{{ mapWrap }}">
+      <sc-if value="{{ isPhoto }}" hint-placeholder-val="{{ true }}">
+        <canvas ref="{{ canvasRef }}" sc-camel-on-click="{{ onCanvasClick }}" style="width: 100%; height: 100%; display: block; cursor: pointer;"></canvas>
+      </sc-if>
+
+      <sc-if value="{{ isGuide }}" hint-placeholder-val="{{ false }}">
+        <div sc-camel-on-click="{{ clearSel }}" style="width: 100%; height: 100%; display: flex; align-items: var(--guide-align, center); justify-content: center; overflow: hidden; background: #E9F0F3;">
+         <div style="{{ guideZoom }}">
+          <!-- 틀을 그림과 똑같은 크기로 잡는다 — 틀이 그림보다 작으면 정원 표시(%)가 글씨보다 위로 밀린다 -->
+          <div style="position: relative; flex: none; width: min(100cqw, 100cqh * 1900 / 1344); aspect-ratio: 1900 / 1344; line-height: 0;">
+            <img src="assets/guide-map.jpg" alt="해운대수목원 안내도" style="width: 100%; height: 100%; display: block;">
+            <sc-for list="{{ spots }}" as="s" hint-placeholder-count="12">
+              <div sc-camel-on-click="{{ s.pick }}" style="{{ s.pos }}">
+                <div style="{{ s.dot }}"></div>
+                <sc-if value="{{ s.on }}" hint-placeholder-val="{{ false }}">
+                  <div style="{{ s.tag }}">{{ s.name }}</div>
+                </sc-if>
+                <sc-if value="{{ s.hasCount }}" hint-placeholder-val="{{ false }}">
+                  <div style="{{ s.countStyle }}">{{ s.count }}</div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+         </div>
+        </div>
+      </sc-if>
+
+      <div style="{{ legend }}">{{ legendText }}</div>
+
+      <sc-if value="{{ hasAllHint }}" hint-placeholder-val="{{ false }}">
+        <div sc-camel-on-click="{{ allHintPick }}" style="{{ allHintPos }}">이곳을 눌러 수목원 전체 볼거리를 확인하세요</div>
+      </sc-if>
+
+      <div data-map-ctl="1" style="{{ zoomBar }}">
+        <div sc-camel-on-click="{{ zoomIn }}" style="{{ zoomBtn }}" title="확대">＋</div>
+        <div sc-camel-on-click="{{ zoomOut }}" style="{{ zoomBtn }}" title="축소">－</div>
+        <sc-if value="{{ showZoomHome }}" hint-placeholder-val="{{ false }}">
+          <div sc-camel-on-click="{{ zoomReset }}" style="{{ zoomHome }}">전체 {{ zoomLevel }}</div>
+        </sc-if>
+      </div>
+    </div>
+
+    <div style="{{ panel }}">
+
+      <div style="{{ searchBox }}">
+        <input type="text" value="{{ query }}" sc-camel-on-change="{{ onQuery }}" placeholder="나무 이름으로 찾기 — 예: 이팝나무" style="{{ searchInput }}">
+        <sc-if value="{{ hasQuery }}" hint-placeholder-val="{{ false }}">
+          <div sc-camel-on-click="{{ clearQuery }}" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; border-radius: 50%; background: #E4EBE6; color: #5C7069; display: flex; align-items: center; justify-content: center; font-size: 15px; cursor: pointer;">×</div>
+        </sc-if>
+      </div>
+
+      <sc-if value="{{ showResults }}" hint-placeholder-val="{{ false }}">
+        <div style="padding: 0 20px 12px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-size: 13px; color: #5C7069;">{{ resultCount }}</div>
+          <sc-for list="{{ results }}" as="r" hint-placeholder-count="5">
+            <div sc-camel-on-click="{{ r.pick }}" style="{{ r.style }}">
+              <span style="font-size: 16px; font-weight: 700;">{{ r.name }}</span>
+              <span style="font-size: 14px; color: #5C7069;">{{ r.n }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}">
+        <div style="padding: 0 20px 12px; font-size: 14px; line-height: 1.6; color: #5C7069;">“{{ query }}”(으)로 찾은 나무가 없습니다. 이름을 줄여서(예: 벚) 다시 찾아보세요.</div>
+      </sc-if>
+
+      <div style="{{ panelScroll }}">
+
+        <sc-if value="{{ viewTree }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; padding: 4px 20px 22px; gap: 16px;">
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <span style="font-size: 13px; font-weight: 700; color: #C4442E; letter-spacing: .04em;">선택한 나무 {{ td.no }}</span>
+              <span style="font-size: 27px; font-weight: 800; color: #1A2621; line-height: 1.2;">{{ td.name }}</span>
+              <span style="font-size: 15px; color: #5C7069;"><sc-for list="{{ td.sciParts }}" as="q" hint-placeholder-count="2"><span style="{{ q.st }}">{{ q.t }}</span></sc-for></span>
+            </div>
+            <sc-if value="{{ td.hasDesc }}" hint-placeholder-val="{{ true }}">
+              <div style="font-size: 15px; line-height: 1.7; color: #253128; text-wrap: pretty;">{{ td.desc }}</div>
+            </sc-if>
+            <div style="display: flex; flex-direction: column; gap: 11px; padding: 15px 16px; background: #F4F8F4; border: 1px solid #E0E9E1; border-radius: 14px;">
+              <sc-for list="{{ td.facts }}" as="f" hint-placeholder-count="4">
+                <div style="display: flex; gap: 12px; align-items: baseline;">
+                  <span style="font-size: 14px; color: #5C7069; width: 78px; flex: none;">{{ f.k }}</span>
+                  <span style="font-size: 15px; font-weight: 500; color: #1A2621; flex: 1;">{{ f.v }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 9px;">
+              <div sc-camel-on-click="{{ td.toSpecies }}" style="{{ td.btn }}">
+                <span style="font-size: 15px; font-weight: 700;">{{ td.name }} 전체 보기</span>
+                <span style="font-size: 14px; color: #5C7069;">{{ td.sameN }}</span>
+              </div>
+              <sc-if value="{{ td.hasGarden }}" hint-placeholder-val="{{ true }}">
+                <div sc-camel-on-click="{{ td.toGarden }}" style="{{ td.btn }}">
+                  <span style="font-size: 15px; font-weight: 700;">{{ td.garden }} 안내 보기</span>
+                  <span style="font-size: 14px; color: #5C7069;">주제원</span>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ viewSpecies }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column;">
+            <div sc-camel-on-click="{{ openPhoto }}" style="{{ photoBox }}">
+              <span style="{{ photoNoteStyle }}">{{ photoNote }}</span>
+              <span style="{{ photoBadgeStyle }}">{{ photoBadge }}</span>
+            </div>
+            <sc-if value="{{ hasCoverCredit }}" hint-placeholder-val="{{ false }}">
+              <div style="{{ coverCreditStyle }}">{{ coverCredit }}</div>
+            </sc-if>
+
+            <div style="padding: 20px 20px 8px; display: flex; flex-direction: column; gap: 6px;">
+              <div style="{{ nameStyle }}">{{ sp.name }}</div>
+              <div style="font-size: 15px; color: #5C7069;"><sc-for list="{{ sp.sciParts }}" as="q" hint-placeholder-count="2"><span style="{{ q.st }}">{{ q.t }}</span></sc-for></div>
+              <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <span style="font-size: 14px; color: #5C7069;">{{ sp.fam }}</span>
+                <sc-if value="{{ sp.hasFlag }}" hint-placeholder-val="{{ false }}">
+                  <span style="font-size: 12.5px; font-weight: 700; white-space: nowrap; color: #8A5A1E; background: #FBF1E0; border-radius: 5px; padding: 3px 9px;">{{ sp.flag }}</span>
+                </sc-if>
+              </div>
+            </div>
+            <div style="padding: 6px 20px 16px; display: flex; flex-direction: column; gap: 14px;">
+              <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+                <sc-if value="{{ sp.hasLead }}" hint-placeholder-val="{{ false }}">
+                  <div style="flex: 1 1 180px; font-family: 'Apple SD Gothic Neo', 'Batang', '바탕', serif; font-size: 18px; font-weight: 500; line-height: 1.55; color: #1A2621; text-wrap: pretty;">{{ sp.lead }}</div>
+                </sc-if>
+                <!-- 위치 보기는 생육형 줄 오른쪽 한 곳만 — 설명 끝에 있던 버튼은 내려야 보여서 옮기고 뺐다.
+                     이름 옆에 두면 학명이 접혀서 한 줄 아래로(2026-10-28 사용자). 좁으면(휴대폰) 생육형 아래로 내려가 가로로 넓게 -->
+                <sc-if value="{{ sp.hasPhotoBtn }}" hint-placeholder-val="{{ false }}">
+                  <!-- 누르는 버튼으로 보이게 — 크게, 그림자, 오른쪽 화살표(2026-10-28 사용자) -->
+                  <div sc-camel-on-click="{{ sp.toPhoto }}" role="button" style="flex: 1 1 auto; max-width: 520px; margin-left: auto; display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 10px; padding: 12px 18px 12px 14px; border-radius: 14px; background: #1F5E63; color: #FFFFFF; cursor: pointer; box-shadow: 0 3px 10px rgba(31, 94, 99, .35); user-select: none;">
+                    <span style="display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center;">
+                      <span style="font-size: 18.5px; font-weight: 700; white-space: nowrap;">👆 자세한 현장 위치 보기 ›</span>
+                      <span style="font-size: 14px; opacity: .88; white-space: nowrap;">눌러 보세요</span>
+                    </span>
+                  </div>
+                </sc-if>
+              </div>
+              <sc-if value="{{ sp.hasParts }}" hint-placeholder-val="{{ false }}">
+                <div style="display: flex; flex-direction: column;">
+                  <sc-for list="{{ sp.parts }}" as="p" hint-placeholder-count="5">
+                    <div style="display: flex; gap: 13px; align-items: flex-start; padding: 14px 0; border-top: 1px solid #E7EDE8;">
+                      <span style="{{ p.labelStyle }}">{{ p.k }}</span>
+                      <span style="{{ p.textStyle }}">{{ p.v }}</span>
+                      <sc-if value="{{ p.hasThumb }}" hint-placeholder-val="{{ false }}">
+                        <div sc-camel-on-click="{{ p.open }}" style="{{ p.thumb }}"></div>
+                      </sc-if>
+                      <sc-if value="{{ p.noPhoto }}" hint-placeholder-val="{{ false }}">
+                        <div style="width: 78px; height: 78px; border-radius: 10px; flex: none; border: 1px dashed #D3DED6; background: #F7FAF7; display: flex; align-items: center; justify-content: center; font-size: 11.5px; color: #9DAFA5; text-align: center; line-height: 1.4;">사진<br>준비 중</div>
+                      </sc-if>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{ sp.hasSrc }}" hint-placeholder-val="{{ true }}">
+                <div style="{{ sp.srcStyle }}">{{ sp.src }}</div>
+              </sc-if>
+              <sc-if value="{{ sp.hasTip }}" hint-placeholder-val="{{ false }}">
+                <div style="display: flex; flex-direction: column; gap: 6px; padding: 15px 16px; background: #EEF6F0; border: 1px solid #CFE3D5; border-radius: 14px;">
+                  <div style="font-size: 13px; font-weight: 700; color: #1F5E63; letter-spacing: .02em;">한눈 구별</div>
+                  <div style="font-size: 15px; line-height: 1.7; color: #1E3A2C; text-wrap: pretty;">{{ sp.tip }}</div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ sp.hasVs }}" hint-placeholder-val="{{ false }}">
+                <div style="display: flex; flex-direction: column; gap: 6px; padding: 15px 16px; background: #FBF6EA; border: 1px solid #E4D6B4; border-radius: 14px;">
+                  <div style="font-size: 13px; font-weight: 700; color: #7A5A18; letter-spacing: .02em;">비슷한 나무와</div>
+                  <div style="font-size: 15px; line-height: 1.7; color: #4A3A15; text-wrap: pretty;">{{ sp.vs }}</div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ sp.hasLeaf }}" hint-placeholder-val="{{ true }}">
+                <div style="font-size: 16px; line-height: 1.65; color: #253128; text-wrap: pretty;">{{ sp.leaf }}</div>
+              </sc-if>
+              <sc-if value="{{ sp.hasDesc }}" hint-placeholder-val="{{ true }}">
+                <div style="display: flex; flex-direction: column; gap: 7px; padding: 15px 16px; background: #F4F8F4; border: 1px solid #E0E9E1; border-radius: 14px;">
+                  <div style="font-size: 13px; font-weight: 700; color: #1F5E63; letter-spacing: .02em;">나무 설명</div>
+                  <div style="font-size: 15px; line-height: 1.75; color: #253128; text-wrap: pretty;">{{ sp.desc }}</div>
+                </div>
+              </sc-if>
+              <sc-for list="{{ sp.facts }}" as="f" hint-placeholder-count="3">
+                <div style="display: flex; gap: 12px; align-items: baseline; border-top: 1px solid #E7EDE8; padding-top: 11px;">
+                  <span style="font-size: 14px; color: #5C7069; width: 78px; flex: none;">{{ f.k }}</span>
+                  <span style="font-size: 15px; font-weight: 500; color: #1A2621; flex: 1;">{{ f.v }}</span>
+                </div>
+              </sc-for>
+              <sc-if value="{{ sp.hasLowNote }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size: 13px; line-height: 1.6; color: #93A39C; padding-left: 90px;">현장 내 나무가 고사되거나 이식된 경우, 해당 식물을 확인하기 어려울 수 있습니다.</div>
+              </sc-if>
+            </div>
+            <div style="padding: 0 20px 20px; display: flex; flex-direction: column; gap: 9px;">
+              <sc-if value="{{ sp.hasWhere }}" hint-placeholder-val="{{ true }}">
+                <div style="font-size: 14px; font-weight: 700; color: #1F5E63;">이 나무가 있는 주제원</div>
+              </sc-if>
+              <sc-for list="{{ sp.where }}" as="w" hint-placeholder-count="3">
+                <div style="{{ w.style }}">
+                  <span style="display: flex; flex-direction: column; gap: 2px;">
+                    <span style="font-size: 15px; font-weight: 500;">{{ w.name }}</span>
+                  </span>
+                  <span style="font-size: 14px; color: #5C7069; white-space: nowrap;">{{ w.meta }}</span>
+                </div>
+              </sc-for>
+              <sc-if value="{{ sp.hasOther }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size: 14px; color: #5C7069; padding: 2px 2px 0;">{{ sp.otherNote }}</div>
+              </sc-if>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ viewGarden }}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; flex-direction: column;">
+            <div style="padding: 20px 20px 10px; display: flex; flex-direction: column; gap: 8px;">
+              <div style="{{ nameStyle }}">{{ gd.name }}</div>
+              <div style="font-size: 16px; line-height: 1.65; color: #253128; text-wrap: pretty;">{{ gd.desc }}</div>
+            </div>
+            <div style="padding: 4px 20px 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <sc-for list="{{ gd.stats }}" as="s" hint-placeholder-count="2">
+                <div style="background: #F0F4F1; border-radius: 12px; padding: 13px 15px; display: flex; flex-direction: column; gap: 3px;">
+                  <span style="font-size: 13px; color: #5C7069;">{{ s.k }}</span>
+                  <span style="font-size: 20px; font-weight: 700; color: #1F5E63;">{{ s.v }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <sc-if value="{{ gd.hasCal }}" hint-placeholder-val="{{ false }}">
+              <div style="margin: 0 20px 20px; padding: 16px 17px 17px; background: #FBF6EA; border: 1px solid #E4D6B4; border-radius: 14px; display: flex; flex-direction: column; gap: 11px;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <span style="font-size: 15px; font-weight: 700; color: #7A5A18;">{{ gd.nowTitle }}</span>
+                  <sc-if value="{{ gd.nowNote }}" hint-placeholder-val="{{ false }}">
+                    <span style="font-size: 13px; line-height: 1.5; color: #997A3C;">{{ gd.nowNote }}</span>
+                  </sc-if>
+                </div>
+                <sc-if value="{{ gd.hasMonths }}" hint-placeholder-val="{{ true }}">
+                  <div style="display: flex; flex-wrap: wrap; gap: 7px;">
+                    <sc-for list="{{ gd.months }}" as="m" hint-placeholder-count="6">
+                      <div sc-camel-on-click="{{ m.pick }}" style="{{ m.style }}">{{ m.label }}</div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ gd.hasNow }}" hint-placeholder-val="{{ true }}">
+                  <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    <sc-for list="{{ gd.now }}" as="b" hint-placeholder-count="3">
+                      <div sc-camel-on-click="{{ b.pick }}" style="{{ b.style }}">
+                        <span style="font-size: 15px; font-weight: 700;">{{ b.name }}</span>
+                        <span style="{{ b.kindStyle }}">{{ b.n }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ gd.noNow }}" hint-placeholder-val="{{ false }}">
+                  <div style="font-size: 14px; line-height: 1.6; color: #997A3C;">{{ gd.noNowNote }}</div>
+                </sc-if>
+              </div>
+            </sc-if>
+            <sc-if value="{{ gd.hasList }}" hint-placeholder-val="{{ true }}">
+              <div style="padding: 0 20px 22px; display: flex; flex-direction: column; gap: 9px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 32px;">
+                  <span style="font-size: 14px; font-weight: 700; color: #1F5E63;">{{ gd.listTitle }}</span>
+                  <sc-if value="{{ gd.canExpand }}" hint-placeholder-val="{{ false }}">
+                    <div sc-camel-on-click="{{ gd.toggleList }}" style="{{ gd.expandBtn }}">{{ gd.expandLabel }}</div>
+                  </sc-if>
+                  <sc-if value="{{ gd.noExpand }}" hint-placeholder-val="{{ true }}">
+                    <span style="font-size: 13px; color: #5C7069;">{{ gd.listCount }}</span>
+                  </sc-if>
+                </div>
+                <sc-for list="{{ gd.species }}" as="t" hint-placeholder-count="6">
+                  <div sc-camel-on-click="{{ t.pick }}" style="{{ t.style }}">
+                    <span style="font-size: 15px; font-weight: 500;">{{ t.name }}</span>
+                    <span style="font-size: 14px; color: #5C7069;">{{ t.n }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+            <sc-if value="{{ gd.empty }}" hint-placeholder-val="{{ false }}">
+              <div style="margin: 0 20px 22px; padding: 18px; background: #F0F4F1; border-radius: 12px; font-size: 15px; line-height: 1.6; color: #5C7069;">{{ gd.emptyNote }}</div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+      </div>
+
+      <div style="{{ footer }}">
+        <span>수목 {{ totalSpecies }}종</span>
+        <span>{{ dataNote }}</span>
+      </div>
+    </div>
+  </div>
+
+  <sc-if value="{{ pvOpen }}" hint-placeholder-val="{{ false }}">
+    <div sc-camel-on-click="{{ pv.close }}" style="position: fixed; inset: 0; z-index: 60; background: rgba(12, 20, 16, .96); display: flex; flex-direction: column; padding: 22px 12px; gap: 14px; cursor: zoom-out;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px; flex: none;">
+        <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+          <span style="font-size: 22px; font-weight: 800; color: #FFFFFF; letter-spacing: -.01em;">{{ pv.name }}</span>
+          <span style="font-size: 14px; color: #A9BCB2;"><sc-for list="{{ pv.sciParts }}" as="q" hint-placeholder-count="2"><span style="{{ q.st }}">{{ q.t }}</span></sc-for></span>
+        </div>
+        <div sc-camel-on-click="{{ pv.close }}" style="flex: none; width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,.14); color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer;" style-hover="background: rgba(255,255,255,.26);">×</div>
+      </div>
+      <div style="flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; gap: 14px; position: relative;">
+        <sc-if value="{{ pv.multi }}" hint-placeholder-val="{{ false }}">
+          <div sc-camel-on-click="{{ pv.prev }}" style="{{ pv.prevStyle }}">‹</div>
+        </sc-if>
+        <div style="{{ pv.imgStyle }}"></div>
+        <sc-if value="{{ pv.multi }}" hint-placeholder-val="{{ false }}">
+          <div sc-camel-on-click="{{ pv.next }}" style="{{ pv.nextStyle }}">›</div>
+        </sc-if>
+      </div>
+      <sc-if value="{{ pv.multi }}" hint-placeholder-val="{{ false }}">
+        <div style="{{ pv.counterStyle }}">{{ pv.counter }}</div>
+      </sc-if>
+      <div style="{{ pv.creditStyle }}">{{ pv.credit }}</div>
+      <div style="flex: none; display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap;">
+        <sc-for list="{{ pv.tabs }}" as="t" hint-placeholder-count="2">
+          <div sc-camel-on-click="{{ t.pick }}" style="{{ t.style }}">{{ t.label }}</div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showToMap }}" hint-placeholder-val="{{ false }}">
+    <div sc-camel-on-click="{{ toMap }}" style="{{ toMapStyle }}">↑ 지도로</div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:820},&quot;photoAlign&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;오른쪽 90도&quot;,&quot;북쪽 위&quot;],&quot;default&quot;:&quot;오른쪽 90도&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;항공사진&quot;},&quot;photoRotate&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0,&quot;max&quot;:359,&quot;step&quot;:1,&quot;unit&quot;:&quot;°&quot;,&quot;default&quot;:110,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;항공사진&quot;},&quot;photoStartZoom&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:1,&quot;max&quot;:2.4,&quot;step&quot;:0.1,&quot;unit&quot;:&quot;배&quot;,&quot;default&quot;:1.8,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;항공사진&quot;},&quot;photoSouthPad&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0,&quot;max&quot;:0.6,&quot;step&quot;:0.02,&quot;default&quot;:0.3,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;항공사진&quot;}}">
+const BX = 211546.833, BY = 291530.424, W = 918.572, H = 1487.431;
+// 드론 10월 정사영상. 위성사진(2024)보다 최신이라 체육시설·산책로가 실제와 맞고,
+// 안내도가 만들어진 시점의 수목원 모습과 같다
+const SAT = { gx: -171.25, gy: -63.0, gs: 0.508 };
+// 드론사진 바깥을 채우는 위성사진(2024) — 같은 좌표계, 훨씬 넓은 범위
+const SAT_BG = { gx: -421.0, gy: -188.5, gs: 0.26765 };
+const PAL = ["#2F7D6E","#C98A2B","#5E9B3A","#B85C7A","#4E7FBF","#A25FB5","#C2673A","#2E9A9A",
+             "#8E9B2B","#8A5FC4","#2E9E62","#BF3E5C","#5E7F94","#B39A2B","#5FA84A","#BF3D8A",
+             "#3A73A8","#9E8A5E","#3FA88E","#B39A3A","#7D9B2B","#A83A6E","#2E86BF","#8E5FA0",
+             "#BF6E33","#2FA085","#9B9B2B","#6B3AA8"];
+
+// hotspots read off the 2026-03 guide illustration (normalised 0-1).
+// name = label on the drawing; key = matching garden in the registry (if any).
+// Every label on the 2026 안내도, at its printed position. id = what a visitor
+// selects (duplicate areas share one id); src = the garden it maps to in the
+// 2026-03 registry, which was drawn up before the park was re-divided.
+const SPOTS = [
+  { id: "재배장", name: "재배장", src: "재배장", x: .195, y: .246 },
+  // 과수원 옆 재배장은 과수원·은사시원과 함께 2026년 공사 구역 — 왼쪽 재배장과 따로 눌리게 이름을 나눈다
+  { id: "재배장(조성 중)", name: "재배장", src: "재배장", x: .365, y: .181 },
+  { id: "편백숲", name: "편백숲", src: "편백숲", x: .255, y: .256 },
+  { id: "침엽수원", name: "침엽수원", src: "침엽수원", x: .365, y: .243 },
+  { id: "과수원", name: "과수원", src: "과수원", x: .421, y: .166 },
+  { id: "은사시원", name: "은사시원", src: "봄꽃원", x: .537, y: .159 },
+  // 가족마당 남쪽 재배장은 2026년 공사로 동물원이 되었다 — 대장의 재배장 나무 중 이쪽에 가까운 것은 동물원으로 센다
+  { id: "동물원", name: "동물원", src: "재배장", x: .821, y: .240 },
+  { id: "가족마당", name: "가족마당", src: "가족마당", x: .752, y: .287 },
+  { id: "생명의숲", name: "생명의 숲", src: "생명의숲", x: .443, y: .336 },
+  { id: "무궁화동산", name: "무궁화동산", src: "봄꽃원", x: .542, y: .296 },
+  { id: "어린이놀이원", name: "어린이놀이원", src: "어린이놀이원", x: .666, y: .316 },
+  { id: "엄마의 숲", name: "엄마의 숲", src: "가족마당", x: .786, y: .367 },
+  { id: "새소리원", name: "새소리원", src: "새소리원", x: .259, y: .390 },
+  { id: "미로원", name: "미로원", src: null, x: .711, y: .376 },
+  { id: "암석원", name: "암석원", src: null, x: .470, y: .413 },
+  { id: "허브길", name: "허브길", src: "허브원", x: .499, y: .427 },
+  { id: "향기원", name: "향기원", src: "향기원", x: .593, y: .427 },
+  { id: "원형광장", name: "원형광장", src: "원형교통섬", x: .669, y: .469 },
+  { id: "철쭉원", name: "철쭉원", src: "철쭉원", x: .770, y: .451 },
+  { id: "난대림원", name: "난대림원", src: "난대림원", x: .205, y: .539 },
+  { id: "참나무원", name: "참나무원", src: "참나무원", x: .371, y: .494 },
+  { id: "잔디광장", name: "잔디광장", src: "잔디광장", x: .495, y: .482 },
+  { id: "장미원", name: "장미원", src: "장미원", x: .447, y: .561 },
+  { id: "장미원", name: "장미원", src: "장미원", x: .528, y: .564 },
+  { id: "토피아리원1", name: "토피아리원1", src: "토피아리원1", x: .580, y: .584 },
+  { id: "토피아리원2", name: "토피아리원2", src: "토피아리원2", x: .412, y: .614 },
+  { id: "동백숲", name: "동백숲", src: null, x: .685, y: .611 },
+  { id: "월가든2", name: "월가든2", src: "월가든", x: .604, y: .657 },
+  { id: "사계화원", name: "사계화원", src: "초식동물원", x: .497, y: .697 },
+  { id: "월가든1", name: "월가든1", src: "월가든", x: .376, y: .777 },
+  { id: "세움정원", name: "Kosca 세움정원", src: null, x: .509, y: .781 },
+  { id: "가을원", name: "가을원", src: "가을원", x: .421, y: .814 },
+  { id: "가을원", name: "가을원", src: "가을원", x: .629, y: .798 },
+  { id: "봄꽃원", name: "봄꽃원", src: "고사식물덩굴원", x: .802, y: .804 },
+  { id: "편백원", name: "편백원", src: "편백원", x: .583, y: .848 },
+  { id: "난대림원", name: "난대림원", src: "난대림원", x: .275, y: .851 },
+  { id: "생태습지원", name: "생태습지원", src: "생태습지원", x: .813, y: .859 },
+  { id: "진입광장", name: "진입광장", src: "진입광장", x: .942, y: .900 }
+];
+
+// 조성 중 on the drawing — say so rather than describing a planting that isn't there
+const PENDING = { "은사시원": true, "봄꽃원": true };
+// 공사 중이거나 공사 뒤 나무를 다시 조사하는 주제원 — 대장 나무를 보여 주지 않고 이 한 줄만 보인다(2026-10-24).
+// 공사 중(은사시원·과수원·과수원 옆 재배장·봄꽃원)은 '조성 중', 공사를 마치고 다시 조사하는 사계화원은 '수목 조사 중'
+// 조사가 끝나 QGIS 자료가 바뀌면 여기서 지운다
+const SURVEYING = {
+  "사계화원": "주제원 수목 조사 중입니다.",
+  "은사시원": "주제원 조성 중입니다.", "과수원": "주제원 조성 중입니다.", "재배장(조성 중)": "주제원 조성 중입니다.",
+  "봄꽃원": "주제원 조성 중입니다."
+};
+
+// Illustration position → registry metres, from an affine fitted on 14 labels whose
+// area kept both its name and its shape (residual under 5 m across the park).
+// 위성사진(초록·회색) 위에서 서로 구분되는 고채도 색만 골랐다
+const DOT_PAL = ["#FFD23F", "#FF8A3D", "#F2545B", "#E85AAD", "#B96BE8", "#6C8AF5",
+  "#3FC8E4", "#2FD69B", "#A8DE3C", "#FFF07C", "#FF6F91", "#7AE0C8"];
+
+const toMap = (u, v) => {
+  const a = u - 1.655517, b = v - 0.711349;
+  return [-378.63 * a - 607.87 * b, -1017.6 * a + 319.47 * b];
+};
+for (const s of SPOTS) { const p = toMap(s.x, s.y); s.mx = p[0]; s.my = p[1]; }
+
+// One registry garden can now be two labels: 가족마당 was divided into 가족마당 +
+// 엄마의 숲, and the old 봄꽃원 area is now 은사시원 + 무궁화동산. Those trees are
+// split by whichever of the sibling labels they actually sit closest to.
+const SPLIT = {};
+for (const s of SPOTS) if (s.src) (SPLIT[s.src] = SPLIT[s.src] || new Set()).add(s.id);
+for (const k of Object.keys(SPLIT)) {
+  if (SPLIT[k].size < 2) delete SPLIT[k];
+  else SPLIT[k] = SPOTS.filter(s => s.src === k);
+}
+
+// 항공사진을 오른쪽으로 90도 돌려 안내도처럼 가로로 눕힌다. 나무 좌표·구역
+// 경계·사진에 같은 회전을 걸므로 위치 관계는 그대로다 (보는 방향만 바뀐다)
+const PHOTO_ROT = (110 * Math.PI) / 180;
+// 항공사진 원본 네 변의 어두운 테두리를 이 비율만큼 잘라낸다
+const SAT_TRIM = 0.018;
+// 식재구역 남쪽(운동시설·주차장 쪽)을 이만큼 더 화면에 들인다 — 0이면 넓히지 않음
+const PHOTO_SOUTH_PAD = 0.3;
+
+const GATE = [181, 765];   // 진입광장, for walking times
+// 안내소에서 걷는 시간을 직원이 정한 주제원(2026-10-26 사용자) — 직선거리 계산보다 이 값을 먼저 쓴다.
+// 월가든1·2는 대장에서 한 구역(월가든)이라, 나무는 가까운 표시점 쪽으로 나눠 센다(SPLIT, 2026-10-26 사용자)
+const WALK_MIN = { "가을원": "10", "세움정원": "8", "난대림원": "15", "월가든1": "10", "월가든2": "8",
+  "토피아리원1": "15", "장미원": "15", "잔디광장": "15", "토피아리원2": "15",
+  "사계화원": "13", "허브길": "15", "향기원": "15",
+  // 나머지는 QField 주도로·포장길을 따라 잰 거리(주제원 나무 가운데 값) ÷ 분당 56m(직원이 정한 바깥쪽 평지 5곳에 맞춘 속도)
+  // — Documents\ppt작업\도보\walk_path.py, 2026-10-27. 생명의숲은 직원 값 15분
+  "진입광장": "2", "봄꽃원": "3", "생태습지원": "4", "편백원": "6", "원형광장": "8", "철쭉원": "9", "동백숲": "9",
+  "엄마의 숲": "11", "어린이놀이원": "10", "가족마당": "11", "무궁화동산": "11", "동물원": "12", "암석원": "12",
+  "은사시원": "13", "참나무원": "13", "생명의숲": "15", "과수원": "14", "침엽수원": "15", "새소리원": "16",
+  "재배장(조성 중)": "16", "편백숲": "17", "재배장": "19" };
+
+// 남쪽 운동시설 부지 시설 이름 — 종이 안내도(해운대수목원 리플릿) 이름 그대로, 항공사진 위에만 글자로 단다(2026-10-28 사용자)
+// 좌표는 나무와 같은 상대 좌표(m). 눌리지 않는다. 리플릿 이름 그대로 — 운동장 동쪽 '가족마당'은 수목원 안 주제원 가족마당과 다른 곳이지만 이름은 리플릿대로(사용자)
+const FAC_LABELS = [["주차장", 115.6, 646.6], ["농구장", -3.9, 637.6], ["족구장", 5.1, 595.8], ["게이트볼장", -0.9, 559.9], ["테니스장", -18.9, 455.4], ["배드민턴장", 5.1, 413.5], ["축구장", 91.7, 506.2], ["풋살장", 97.7, 406.4], ["꿈의 놀이터", 187.3, 509.1], ["물의정원", 226.2, 551.0], ["가족마당", 256.1, 467.3], ["잔디마당", 175.4, 341.8], ["파크골프장", 20.0, 300.0], ["대나무군락지", 37.9, 186.4], ["만남의 광장", 31.9, 141.6]];
+
+// facilities printed on the 안내도 that belong to a larger garden and carry no
+// records of their own: label them, but don't let a visitor open a dead panel
+const INERT = { "미로원": 1, "동백숲": 1, "암석원": 1 };
+
+const SPOT_XY = {};
+for (const s of SPOTS) if (!SPOT_XY[s.id]) SPOT_XY[s.id] = [s.mx, s.my];
+
+// 대장에 다른 구역으로 적혔지만 실제로는 안내도의 다른 주제원 안에 있는 나무 — 자리로 옮겨 센다.
+// 세움정원: 새로 찍은 분꽃나무·치자나무·낙상홍 등이 대장에 '운동시설'로 들어가 있다(2026-10-24 사용자 확인).
+// 세움정원 근처에 최근 찍은 '운동시설' 나무 무리(표시점 110m 안, 87주)는 모두 세움정원 나무다(사용자 확인).
+// 세움정원은 가을원 안의 작은 정원이라 은행나무·복자기처럼 가을원 수종도 섞여 있다. QGIS에서 고치면 여기서 지운다
+const REMAP = [
+  { from: "운동시설", to: "세움정원", r: 110 },
+  // 세움정원 붉나무 1그루가 대장에 '초식동물원(사계화원)'으로 들어가 있다(2026-10-25 사용자 확인) — 이 나무만 옮긴다
+  { from: "초식동물원", to: "세움정원", r: 60, only: ["붉나무"] },
+  // 동백숲: 대장에 구역 없이 위치만 찍힌 동백나무 등(표시점 50m 안 110주). 올해 다시 심는 중이라
+  // 안내도에서는 눌리지 않게 두고(INERT), 항공사진·수종 화면에서만 그 자리 나무를 동백숲으로 보여 준다(2026-10-24 사용자)
+  { from: null, to: "동백숲", r: 50 },
+  // 진입광장 앞 큰길가 대왕참나무 줄(가로수 시작점, 9그루)은 진입광장이 아니라 녹지대(2026-10-27 사용자)
+  { from: "진입광장", to: "녹지대", x: 215, y: 775, r: 20, only: ["대왕참나무"] },
+  // 허브길(둥근 길) 양옆 꽝꽝나무 생울타리는 어느 구역으로 적혔든 허브길(2026-10-28 사용자).
+  // 허브원 칠엽수·무궁화 줄에 맞춘 원(중심 491.6,1120.1 · 반지름 125.8m)에서 7m 안쪽 띠
+  { from: "*", to: "허브길", ring: [491.6, 1120.1, 125.8], band: 7, only: ["꽝꽝나무"] },
+  // 월가든2 아래 흰 천막(반원 쉼터) 울타리 안 팽나무는 사계화원(2026-10-28 사용자)
+  { from: "월가든", to: "사계화원", x: 378.4, y: 1072.8, r: 2, only: ["팽나무"] },
+  // 동물원 잔디밭 남동쪽 길가 비탈(팽나무 5그루)은 동물원(2026-10-28 사용자)
+  { from: "녹지대", to: "동물원", poly: [[610.1, 715.8], [605.8, 704.1], [592.5, 707.6], [579.8, 720.2], [583.2, 729.6], [592.4, 732.9], [601.0, 723.7]] }
+];
+for (const m of REMAP) if (m.x == null && !m.ring && !m.poly) { const p = SPOT_XY[m.to]; m.x = p[0]; m.y = p[1]; }
+// 나무 자리(좌표) → 옮겨 셀 주제원. 자료를 읽을 때 한 번 만든다(buildRemap)
+let REMAP_AT = new Map();
+function buildRemap(data) {
+  REMAP_AT = new Map();
+  for (const m of REMAP) {
+    // from: null 은 대장에 구역이 없는 나무(-1), "*" 는 구역 상관없이. 이름이 있는데 대장에서 사라졌으면 건너뛴다
+    const any = m.from === "*";
+    const gi = any ? 0 : m.from == null ? -1 : data.gardens.indexOf(m.from);
+    if (!any && m.from != null && gi < 0) continue;
+    for (const r of data.d) {
+      if (r[0] == null || (!any && r[2] !== gi)) continue;
+      // ring: 원 둘레 띠 안 [중심x, 중심y, 반지름] ± band, 아니면 점(x,y)에서 r 안
+      if (m.poly ? !inPoly(r[0], r[1], m.poly)
+        : m.ring ? Math.abs(Math.hypot(r[0] - m.ring[0], r[1] - m.ring[1]) - m.ring[2]) > m.band
+                 : Math.hypot(r[0] - m.x, r[1] - m.y) >= m.r) continue;
+      if (m.only && !(r[3] >= 0 && m.only.includes(data.names[r[3]]))) continue;
+      REMAP_AT.set(r[0] + "," + r[1], m.to);
+    }
+  }
+}
+
+// 나무 한 그루 → 안내도 주제원 이름. 대장에 구역이 없어도 REMAP 자리면 그 주제원으로 본다
+function zoneOf(gardens, r) {
+  const re = REMAP_AT.get(r[0] + "," + r[1]); if (re) return re;
+  return r[2] >= 0 ? labelFor(gardens[r[2]], r[0], r[1]) : null;
+}
+
+// 둘로 나눈 주제원 중 경계를 직접 그린 곳 — 이 면 안의 나무는 가까운 이름표와 상관없이 이 주제원(상대 좌표 m)
+// 엄마의 숲: 동물원 아래(놀이터 우산)에서 가족마당 연못 가장자리 길을 따라 큰길까지, 그 남쪽·서쪽(2026-10-27·28 사용자 그림)
+// 사용자가 그린 구역 그림은 바탕화면 해운대수목원\구역나눔_사용자그림_2026.10.27.webp
+const SPLIT_POLY = {
+  "가족마당": { polys: [["엄마의 숲", [[430,690],[430,800],[503,802],[518,807],[533,812],[556,819],[561,816],[566,800],[578,775],[588,766],[600,760.5],[621.7,755.8],[630,742],[618,700]]]], rest: "가족마당" },
+  // 무궁화동산: 두 큰길 사이 물길 띠까지 무궁화동산, 바깥 큰길 너머만 은사시원(2026-10-27 사용자 그림). 면 밖은 가까운 이름표
+  "봄꽃원": { polys: [["무궁화동산", [[613.2,1070.9],[732.3,1077.8],[775.7,1057.7],[769.3,1014.0],[752.1,976.0],[729.6,946.3],[666.7,955.8],[642.1,957.9],[617.8,973.2],[598.4,1017.5]]]], rest: null }
+};
+const inPoly = (x, y, ring) => {
+  let ok = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [x1, y1] = ring[i], [x2, y2] = ring[j];
+    if ((y1 > y) !== (y2 > y) && x < (x2 - x1) * (y - y1) / (y2 - y1) + x1) ok = !ok;
+  }
+  return ok;
+};
+const splitPoly = (garden, x, y) => {
+  const sp = SPLIT_POLY[garden]; if (!sp) return null;
+  for (const [id, ring] of sp.polys) if (inPoly(x, y, ring)) return id;
+  return sp.rest;                   // 그린 면 밖 — 정한 주제원, null이면 가까운 이름표로
+};
+
+// registry garden + position → the 안내도 label it now belongs to
+function labelFor(garden, x, y) {
+  const re = REMAP_AT.get(x + "," + y); if (re) return re;
+  const pl = splitPoly(garden, x, y); if (pl) return pl;
+  const group = SPLIT[garden];
+  if (group) {
+    let best = group[0], bd = Infinity;
+    for (const s of group) {
+      const dd = (x - s.mx) ** 2 + (y - s.my) ** 2;
+      if (dd < bd) { bd = dd; best = s; }
+    }
+    return best.id;
+  }
+  const s = SPOTS.find(s => s.src === garden);
+  return s ? s.id : garden;
+}
+
+class Component extends DCLogic {
+  state = {
+    data: null, base: "guide", layer: "ortho", garden: null, species: null, month: null,
+    query: "", zoom: 1, wide: true, fixedHost: false, info: null, pv: null,
+    // 지도 확대·이동 — k 배율, tx/ty 화면 픽셀 이동량 (안내도·항공사진 공통)
+    nav: { k: 1, tx: 0, ty: 0 },
+    // 항공사진은 항상 개체(나무 한 그루) 단위 — 전시원 구성은 안내도가 맡는다
+    tree: null
+  };
+  canvasRef = React.createRef();
+  mapRef = React.createRef();
+  shellRef = React.createRef();
+
+  // measure our own container, not the window — so the layout is also correct
+  // when embedded in a phone mockup or an iframe narrower than the browser
+  _measure() {
+    const el = this.shellRef.current;
+    const w = el ? el.clientWidth : window.innerWidth;
+    return w >= 900;
+  }
+
+  // 폰 목업이나 카드처럼 높이가 못박힌 자리에 얹히면 페이지가 스크롤될 수 없다.
+  // 그때는 예전처럼 패널 안쪽만 스크롤해야 내용에 닿을 수 있다.
+  _hostFixed() {
+    const el = this.shellRef.current;
+    if (!el) return false;
+    let p = el.parentElement;
+    while (p && p !== document.body && p !== document.documentElement) {
+      const cs = getComputedStyle(p);
+      if ((cs.overflowY === "hidden" || cs.overflowY === "auto" || cs.overflowY === "scroll")
+          && p.clientHeight > 0 && p.clientHeight < window.innerHeight * 0.95) return true;
+      p = p.parentElement;
+    }
+    return false;
+  }
+
+  componentDidMount() {
+    this._onResize = () => {
+      const wide = this._measure();
+      const fixedHost = this._hostFixed();
+      if (wide !== this.state.wide || fixedHost !== this.state.fixedHost) this.setState({ wide, fixedHost });
+      this.draw();
+    };
+    window.addEventListener("resize", this._onResize);
+    this.bindNav();
+    if (window.ResizeObserver && this.shellRef.current) {
+      this._ro = new ResizeObserver(this._onResize);
+      this._ro.observe(this.shellRef.current);
+    }
+    this.setState({ wide: this._measure(), fixedHost: this._hostFixed() });
+
+    // lets a mockup/embed open straight to one species, same as a QR deep link
+    if (this.props.initialSpecies) this.setState({ species: this.props.initialSpecies });
+
+    // QR deep links: #정원=난대림원 or #수종=이팝나무 opens straight to that page
+    this._onHash = () => {
+      const h = decodeURIComponent((location.hash || "").replace(/^#/, ""));
+      if (!h) return;
+      const [k, v] = h.split("=");
+      if (!v) return;
+      // 위치대장에 없는 이름(잘못된 링크)은 빈 수종 화면을 띄우지 않는다
+      const known = n => { const T = window.TREES_COMPACT; return !T || T.names.includes(n); };
+      if (k === "수종" && known(v)) this.setState({ species: v, query: "", pv: null });
+      else if (k === "정원" && SPOT_XY[v] && !INERT[v]) this.setState({ garden: v, species: null, query: "" });
+    };
+    window.addEventListener("hashchange", this._onHash);
+    this._onHash();
+
+    // 자료는 모두 문서 맨 위에서 함께 불러온다 —
+    // 파일을 통째로 공유·게시할 때 자료가 빠지지 않게 하려는 것이다
+    this._waitData();
+    if (this.state.base === "photo" && this.state.layer !== "plan") this.loadOrtho();
+
+    this._onPub = () => { if (this._raw) this.applyData(); };
+    window.addEventListener("storage", this._onPub);
+    window.addEventListener("focus", this._onPub);
+  }
+
+  // 항공사진(약 3.5MB)은 「항공사진」 단추를 처음 눌렀을 때 받는다 —
+  // 안내도만 보고 가는 관람객은 받지 않아도 되므로 첫 화면이 가벼워진다
+  loadOrtho() {
+    if (this._orthoStarted) return;
+    this._orthoStarted = true;
+    const im = new Image();
+    const onDrone = () => {
+      SAT.gs = 0.508 * 2480 / im.naturalWidth;
+      const mips = [im];
+      let src = im, w = im.naturalWidth, h = im.naturalHeight;
+      while (w > 700 && h > 700) {
+        w = Math.round(w / 2); h = Math.round(h / 2);
+        const cv = document.createElement("canvas");
+        cv.width = w; cv.height = h;
+        const cg = cv.getContext("2d");
+        cg.imageSmoothingQuality = "high";
+        cg.drawImage(src, 0, 0, w, h);
+        mips.push(cv); src = cv;
+      }
+      im._mips = mips; this._sat = im; this.draw();
+    };
+    im.onload = onDrone; im.src = "assets/ortho-1023-web.webp";
+
+    // 드론사진은 수목원 주변에서 끝난다 — 그 바깥(운동시설·마을·산)은
+    // 더 넓게 찍힌 위성사진을 밑에 깔아 이어 준다
+    const bg = new Image();
+    const onSat = () => {
+      // 사진을 작게 줄여 쓰더라도 축척(1픽셀당 미터)은 원본 기준으로 되돌려 맞춘다
+      SAT_BG.gs = 0.26765 * 6000 / bg.naturalWidth;
+      const mips = [bg];
+      let src = bg, w = bg.naturalWidth, h = bg.naturalHeight;
+      while (w > 700 && h > 700) {
+        w = Math.round(w / 2); h = Math.round(h / 2);
+        const cv = document.createElement("canvas");
+        cv.width = w; cv.height = h;
+        const cg = cv.getContext("2d");
+        cg.imageSmoothingQuality = "high";
+        cg.drawImage(src, 0, 0, w, h);
+        mips.push(cv); src = cv;
+      }
+      bg._mips = mips; this._satbg = bg; this.draw();
+    };
+    bg.onload = onSat; bg.src = "assets/ortho-sat-small.webp";
+  }
+
+  // GIS 위성판에서 "관람객 지도에 반영"을 누르면 저장되는 신규 식재점을 합쳐서 그린다
+  // 문서 위쪽에서 함께 실린 자료 파일이 다 읽힐 때까지 기다렸다가 받는다
+  // 도감 해설(data/species-guide.js)을 수종 화면에 합친다.
+  // 직접 다듬은 해설(lead가 있는 종)은 그대로 두고, 나머지는 도감·위치도 해설로 채운다.
+  // 시기·원산지·한눈 구별·비교처럼 도감에 없는 항목은 기존 값을 남긴다
+  mergeGuide(base, guide) {
+    if (!guide) return base;
+    const out = Object.assign({}, base);
+    for (const k in guide) {
+      const b = base[k] || {};
+      out[k] = b.lead ? b : Object.assign({}, b, guide[k]);
+    }
+    return out;
+  }
+
+  _waitData(n) {
+    n = n || 0;
+    if (window.BLOOM_SURVEY) this._bloom = window.BLOOM_SURVEY;
+    if (window.PHOTO_CREDITS) this._credits = window.PHOTO_CREDITS;
+    if (window.SPECIES && window.GARDEN_INFO && (!this._info || (window.SPECIES_GUIDE && !this._info.merged)))
+      this._info = { SPECIES: this.mergeGuide(window.SPECIES, window.SPECIES_GUIDE), GARDEN_INFO: window.GARDEN_INFO, merged: !!window.SPECIES_GUIDE };
+    if (window.TREES_COMPACT && !this._raw) { this._raw = window.TREES_COMPACT; this.applyData(); }
+    else this.forceUpdate();
+    const done = window.TREES_COMPACT && window.SPECIES && window.BLOOM_SURVEY && window.BLOOM_GUIDE && window.PHOTO_CREDITS && window.BLOOM_MONTH;
+    if (!done && n < 150) setTimeout(() => this._waitData(n + 1), 100);
+  }
+
+  applyData() {
+    // 미확정 나무(확인불가·이름 없음 등)는 data/trees.js 에 아예 들어 있지 않다 —
+    // tools/make_public_trees.ps1 이 공개용 파일을 만들 때 뺀다
+    const data = this.mergePublic(this._raw);
+    buildRemap(data);
+    this._hulls = this.buildHulls(data);
+    this.setState({ data }, () => { this.draw(); this.forceUpdate(); });
+  }
+
+  mergePublic(base) {
+    let pts = [];
+    try { pts = JSON.parse(localStorage.getItem("haeundae_public_points") || "[]"); } catch (e) {}
+    if (!Array.isArray(pts) || !pts.length) return base;
+    const names = base.names.slice(), gardens = base.gardens.slice();
+    const ni = new Map(names.map((n, i) => [n, i]));
+    const gi = new Map(gardens.map((n, i) => [n, i]));
+    const rows = base.d.slice();
+    let maxId = 0;
+    for (const r of base.d) { const v = +r[5]; if (v > maxId) maxId = v; }
+    pts.forEach((p, k) => {
+      if (typeof p.x !== "number" || typeof p.y !== "number") return;
+      let n = -1;
+      if (p.name) { if (!ni.has(p.name)) { ni.set(p.name, names.length); names.push(p.name); } n = ni.get(p.name); }
+      let g = -1;
+      if (p.garden) { if (!gi.has(p.garden)) { gi.set(p.garden, gardens.length); gardens.push(p.garden); } g = gi.get(p.garden); }
+      rows.push([p.x, p.y, g, n, 0, maxId + k + 1]);
+    });
+    return Object.assign({}, base, { d: rows, names, gardens });
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener("storage", this._onPub);
+    window.removeEventListener("focus", this._onPub);
+    window.removeEventListener("resize", this._onResize);
+    if (this._ro) this._ro.disconnect();
+  }
+  componentDidUpdate(pp) {
+    // 슬라이더로 각도를 바꾸면 화면에서 눌러 돌린 값은 버린다
+    if (pp && pp.photoRotate !== this.props.photoRotate && this.state.rotDeg != null) {
+      this._bounds = null;
+      this.setState({ rotDeg: null });
+    }
+    if (this.state.base === "photo" && this.state.layer !== "plan") this.loadOrtho();
+    this.bindNav(); this.draw();
+  }
+
+  // outlines follow the 안내도's labels, not the older registry names, so the
+  // satellite view and the illustration always select the same thing
+  buildHulls(data) {
+    const groups = new Map();
+    for (const r of data.d) {
+      if (r[0] == null) continue;
+      const id = zoneOf(data.gardens, r);
+      if (!id) continue;
+      // registry-only names (녹지대, 교통섬) are nowhere on the 2026 안내도 and their
+      // scattered hulls would blanket a third of the park — leave them out
+      if (!SPOT_XY[id]) continue;
+      let a = groups.get(id); if (!a) groups.set(id, a = []);
+      a.push([r[0], r[1]]);
+    }
+    // 항공사진 이름표 자리를 그 이름의 실제 나무 쪽으로 당겨 붙이는 데 쓴다
+    this._ptsById = groups;
+    const out = [];
+    const seen = new Map();
+    for (const [id, all] of groups) {
+      if (all.length < 8) continue;
+      // 난대림원·장미원·가을원 등은 안내도에 두 곳으로 나뉘어 있다. 한 덩어리로 감싸면
+      // 두 패치 사이의 무관한 땅까지 폴리곤이 덮으므로, 붙어 있는 무리별로 나눈다
+      for (const pts of this.clusters(all, 26)) {
+        if (pts.length < 8) continue;
+        const cx = pts.reduce((a, p) => a + p[0], 0) / pts.length;
+        const cy = pts.reduce((a, p) => a + p[1], 0) / pts.length;
+        const ds = pts.map(p => Math.hypot(p[0] - cx, p[1] - cy));
+        const mu = ds.reduce((a, b) => a + b, 0) / ds.length;
+        const sd = Math.sqrt(ds.reduce((a, b) => a + (b - mu) ** 2, 0) / ds.length);
+        const keep = pts.filter((p, i) => ds[i] <= mu + 2.2 * sd);
+        const hull = this.hull(keep.length > 6 ? keep : pts);
+        if (hull.length < 3) continue;
+        let a = 0;
+        for (let i = 0, j = hull.length - 1; i < hull.length; j = i++)
+          a += hull[j][0] * hull[i][1] - hull[i][0] * hull[j][1];
+        const ci = seen.has(id) ? seen.get(id) : (seen.set(id, seen.size), seen.get(id));
+        out.push({ id, hull, n: all.length, ci, area: Math.abs(a) / 2 });
+      }
+    }
+    return out.sort((a, b) => b.n - a.n);
+  }
+
+  // single-link clustering on a grid: O(n) neighbour lookup, no distance matrix
+  clusters(pts, gap) {
+    const cell = gap, buckets = new Map();
+    const key = (i, j) => i + "," + j;
+    pts.forEach((p, k) => {
+      const kk = key(Math.floor(p[0] / cell), Math.floor(p[1] / cell));
+      let b = buckets.get(kk); if (!b) buckets.set(kk, b = []);
+      b.push(k);
+    });
+    const seen = new Uint8Array(pts.length), out = [];
+    for (let s = 0; s < pts.length; s++) {
+      if (seen[s]) continue;
+      const stack = [s], grp = []; seen[s] = 1;
+      while (stack.length) {
+        const k = stack.pop(); grp.push(pts[k]);
+        const ci = Math.floor(pts[k][0] / cell), cj = Math.floor(pts[k][1] / cell);
+        for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) {
+          const b = buckets.get(key(ci + di, cj + dj)); if (!b) continue;
+          for (const m of b) {
+            if (seen[m]) continue;
+            if (Math.hypot(pts[m][0] - pts[k][0], pts[m][1] - pts[k][1]) <= gap) { seen[m] = 1; stack.push(m); }
+          }
+        }
+      }
+      out.push(grp);
+    }
+    // keep only substantial patches; stragglers would draw noise polygons
+    const big = out.filter(g => g.length >= Math.max(8, pts.length * 0.06));
+    return big.length ? big : [pts];
+  }
+
+  hull(pts) {
+    const p = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+    const lo = [], up = [];
+    for (const q of p) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+    for (let i = p.length - 1; i >= 0; i--) { const q = p[i]; while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); }
+    return lo.slice(0, -1).concat(up.slice(0, -1));
+  }
+
+  // fit the planted area, not the full registry bbox: the southern access strip
+  // is a third of the height and has nothing on it for a visitor
+  // 90도 돌려 볼지 — 아니면 사진 원본 방향(북쪽 위) 그대로
+  fitsIll() { return this.state.base === "photo" && this.props.photoAlign !== "북쪽 위"; }
+  // 각도는 화면에서 직접 돌릴 수 있다 — 안내도 방향에 맞춰 눈으로 맞추는 게 빠르다
+  rotDeg() {
+    const p = this.props.photoRotate;
+    return this.state.rotDeg != null ? this.state.rotDeg : (p == null ? 110 : p);
+  }
+  rot() { return this.fitsIll() ? (this.rotDeg() * Math.PI) / 180 : 0; }
+
+  // 평면도 도형이 닿는 사각형(상대 좌표 m, 여백 80m) — 평면도에서 끌 수 있는 범위
+  planExtent() {
+    if (this._planExt) return this._planExt;
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    for (const key of ["garden", "lawn", "water", "road"]) for (const poly of (window.PLAN[key] || [])) for (const r of poly)
+      for (let i = 0; i < r.length; i += 2) { x0 = Math.min(x0, r[i]); x1 = Math.max(x1, r[i]); y0 = Math.min(y0, r[i + 1]); y1 = Math.max(y1, r[i + 1]); }
+    const m = 80;
+    return this._planExt = { gx: x0 - m, gy: y0 - m, iw: x1 - x0 + 2 * m, ih: y1 - y0 + 2 * m, plan: true };
+  }
+
+  // 평면도 바탕 — QField 레이어(data/plan.js)를 단순한 색으로 칠한다. 좌표는 나무와 같은 상대 좌표
+  drawPlan(g, v) {
+    const P = window.PLAN, M = this.mat(v), k = Math.hypot(M[0], M[1]) || 1;
+    g.save(); g.transform(M[0], M[1], M[2], M[3], M[4], M[5]);
+    const fill = (list, fillC, strokeC, lw, dash) => {
+      if (!list || !list.length) return;
+      g.beginPath();
+      for (const poly of list) for (const r of poly) {
+        g.moveTo(r[0], r[1]);
+        for (let i = 2; i < r.length; i += 2) g.lineTo(r[i], r[i + 1]);
+        g.closePath();
+      }
+      if (fillC) { g.fillStyle = fillC; g.fill("evenodd"); }
+      if (strokeC) { g.setLineDash(dash ? dash.map(d => d / k) : []); g.strokeStyle = strokeC; g.lineWidth = lw / k; g.stroke(); g.setLineDash([]); }
+    };
+    fill(P.sport, "#E2E4DE", "#8E968B", 1.4, [6, 4]);     // 운동시설 — 주제원이 아니어서 점선으로 구분
+    fill(P.lawn, "#DCEBCF", null);                        // 남쪽 운동시설 부지 바탕(드론사진에서 그림)
+    fill(P.garden, "#C9E4B4", "#FFFFFF", 1.2);
+    fill(P.water, "#A9D3EC", "#7FB6D8", 0.8);
+    fill(P.asphalt, "#DEDED8", "#B9B9B1", 0.8);           // 주차장·도로
+    fill(P.parkrow, "#CFCFC8", "#FFFFFF", 0.7);           // 주차 칸 줄
+    fill(P.pave, "#F2EEDF", null);
+    fill(P.road, "#FFFFFF", "#CFCFC4", 0.7);
+    fill(P.court, "#D49A80", "#FFFFFF", 1.4);             // 코트 — 실제 바닥색(주황·파랑·초록)대로
+    fill(P.courtB, "#6FA8DC", "#FFFFFF", 1.4);
+    fill(P.courtG, "#7CBF8E", "#FFFFFF", 1.4);
+    fill(P.net, null, "#FFFFFF", 1.0);                    // 코트 가운데 네트선
+    fill(P.turf, "#79B57B", "#FFFFFF", 1.0);              // 축구·풋살 인조잔디
+    fill(P.pink, "#F3CDD1", null);                        // 분홍 산책로
+    fill(P.rose, "#F3B6CB", "#E58AA9", 0.5);
+    fill(P.building, "#C8C8C2", "#9E9E96", 0.6);
+    g.restore();
+  }
+  // 항공사진을 열었을 때의 시작 배율
+  // 학명을 기울임꼴 조각으로 — 규칙은 data/sci-format.js
+  sciParts(s) {
+    const f = window.sciParts;
+    return (f ? f(s) : [{ t: s || "", i: false }]).map(p => ({ t: p.t, st: { fontStyle: p.i ? "italic" : "normal" } }));
+  }
+  startZoom() { const z = this.props.photoStartZoom; return z == null ? 1.8 : z; }
+  // 항공사진은 「전체 1.8배」가 가장 넓게 보는 화면 — 그보다 작게 줄이지 않는다
+  // 평면도는 바탕이 단색이라 수목원 전체(남쪽 운동시설 포함)가 보이게 1배까지 줄일 수 있다
+  homeZoom() { return this.state.base === "photo" && this.state.layer !== "plan" ? this.startZoom() : 1; }
+  // 시작 위치를 왼쪽으로 조금 밀어 둔다 (음수 = 지도가 왼쪽으로, 오른쪽이 더 보인다)
+  startPan() {
+    const f = this.props.photoStartPan == null ? -0.1 : this.props.photoStartPan;
+    const el = this.mapRef.current;
+    return (el ? el.clientWidth : 900) * f;
+  }
+  southPad() { const p = this.props.photoSouthPad; return p == null ? PHOTO_SOUTH_PAD : p; }
+  // 대장 좌표 → 화면에 놓기 전의 좌표 (y는 위가 +)
+  turn(x, y) { const a = this.rot(), c = Math.cos(a), s = Math.sin(a); return [x * c - y * s, x * s + y * c]; }
+  unturn(x, y) { const a = this.rot(), c = Math.cos(a), s = Math.sin(a); return [x * c + y * s, -x * s + y * c]; }
+
+  // 화면 변환 행렬 — 사진(캔버스 이미지)에도 같은 변환을 걸기 위해
+  mat(v) {
+    const o = this.turn(0, 0), ex = this.turn(1, 0), ey = this.turn(0, 1);
+    const t00 = ex[0] - o[0], t10 = ex[1] - o[1], t01 = ey[0] - o[0], t11 = ey[1] - o[1];
+    return [v.s * t00, -v.s * t10, v.s * t01, -v.s * t11, v.ox + v.s * o[0], v.oy - v.s * o[1]];
+  }
+
+  bounds() {
+    // 각도·여백을 바꾸면 틀도 다시 계산되도록 키에 함께 넣는다
+    const key = (this.state.base === "photo" ? "photo" : "guide") + "/" + (this.fitsIll() ? "ill" : "n")
+      + "/" + this.rot().toFixed(4) + "/" + this.southPad() + "/" + (this.state.layer === "plan" ? "plan" : "");
+    if (this._bounds && this._bounds.key === key) return this._bounds;
+    if (!this._hulls || !this._hulls.length) return { key, x0: 0, y0: 0, x1: W, y1: H };
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    const add = (px, py) => {
+      const p = this.turn(px, py);
+      if (p[0] < x0) x0 = p[0]; if (p[0] > x1) x1 = p[0];
+      if (p[1] < y0) y0 = p[1]; if (p[1] > y1) y1 = p[1];
+    };
+    for (const z of this._hulls) for (const p of z.hull) add(p[0], p[1]);
+    // 평면도는 남쪽 운동시설 부지(lawn)까지 한 화면에 들어오게 틀을 잡는다
+    const planOn = this.state.base === "photo" && this.state.layer === "plan" && window.PLAN && window.PLAN.lawn;
+    if (planOn) for (const poly of window.PLAN.lawn) for (const r of poly) for (let i = 0; i < r.length; i += 2) add(r[i], r[i + 1]);
+    // 사진을 돌리면 사진 네 귀퉁이가 화면에 들어와 마름모처럼 보인다 — 틀을
+    // 식재 구역에 맞춰 사진 안쪽만 쓰면 화면이 반듯하게 꽉 찬다
+    // 여백은 좌표 단위에 맞춰 — 안내도 틀은 0~1 비율이라 미터 값을 그대로 쓰면 안 된다
+    const m = Math.max(x1 - x0, y1 - y0) * 0.028;
+    x0 -= m; y0 -= m; x1 += m; y1 += m;
+    // 남쪽 운동시설·주차장이 프레임에 들어오도록 남쪽 방향으로만 더 넓힌다.
+    // 회전 각도가 바뀌어도 '남쪽'이 화면에서 향하는 쪽을 계산해 그쪽만 넓힌다
+    // 남쪽만 넓히면 식재구역이 화면 한쪽으로 밀린다 — 반대쪽도 같은 만큼
+    // 넓혀 수목원이 화면 가운데에 오게 한다
+    if (this.fitsIll() && !planOn) {
+      const s = this.turn(0, -1);
+      const p = Math.max(x1 - x0, y1 - y0) * this.southPad();
+      const gx = Math.abs(s[0] * p), gy = Math.abs(s[1] * p);
+      x0 -= gx; x1 += gx; y0 -= gy; y1 += gy;
+    }
+    return this._bounds = { key, x0, y0, x1, y1 };
+  }
+
+  view(cw, ch) {
+    const b = this.bounds();
+    const bw = b.x1 - b.x0, bh = b.y1 - b.y0;
+    const s0 = Math.min(cw / bw, ch / bh) * 0.97;
+    const ox0 = (cw - bw * s0) / 2 - b.x0 * s0, oy0 = (ch + bh * s0) / 2 + b.y0 * s0;
+    // 사용자가 확대·이동한 만큼을 화면 중심 기준으로 덧씌운다
+    const n = this.state.nav || { k: 1, tx: 0, ty: 0 };
+    const s = s0 * n.k;
+    const ox = cw / 2 + (ox0 - cw / 2) * n.k + n.tx;
+    const oy = ch / 2 + (oy0 - ch / 2) * n.k + n.ty;
+    const v = {
+      s, ox, oy,
+      p: (x, y) => { const t = this.turn(x, y); return [ox + t[0] * s, oy - t[1] * s]; },
+      inv: (px, py) => this.unturn((px - ox) / s, (oy - py) / s)
+    };
+    return v;
+  }
+
+  // 드론 사진의 촬영 범위 밖(어두운 위성 영상)을 화면 배경색으로 바꾼다.
+  // 네 변에서 어두운 자리만 번져 들어가므로 수목원 안 짙은 숲은 건드리지 않는다.
+  // 화면에 그릴 때 채도·명암 보정이 걸리므로, 보정을 거치면 #E9F0F3이 되는 값을 채운다
+  flattenDarkEdges(im) {
+    const w = im.naturalWidth, h = im.naturalHeight;
+    const cv = document.createElement("canvas");
+    cv.width = w; cv.height = h;
+    const g = cv.getContext("2d", { willReadFrequently: true });
+    g.drawImage(im, 0, 0);
+    let id;
+    try { id = g.getImageData(0, 0, w, h); } catch (e) { return cv; }
+    const p = id.data, n = w * h;
+    const DARK = 56;                     // 이보다 어두우면 촬영 범위 밖으로 본다
+    const lum = i => (p[i * 4] * 54 + p[i * 4 + 1] * 183 + p[i * 4 + 2] * 19) >> 8;
+    const out = new Uint8Array(n);
+    const q = new Int32Array(n);
+    let qh = 0, qt = 0;
+    const push = i => { if (!out[i] && lum(i) < DARK) { out[i] = 1; q[qt++] = i; } };
+    for (let x = 0; x < w; x++) { push(x); push((h - 1) * w + x); }
+    for (let y = 0; y < h; y++) { push(y * w); push(y * w + w - 1); }
+    while (qh < qt) {
+      const i = q[qh++], x = i % w, y = (i - x) / w;
+      if (x > 0) push(i - 1);
+      if (x < w - 1) push(i + 1);
+      if (y > 0) push(i - w);
+      if (y < h - 1) push(i + w);
+    }
+    // 경계에 남는 어두운 테두리 한 겹을 걷어낸다
+    for (let k = 0; k < 3; k++) {
+      const b = out.slice();
+      for (let i = 0; i < n; i++) {
+        if (b[i]) continue;
+        if ((i % w && out[i - 1]) || ((i + 1) % w && out[i + 1]) ||
+            (i >= w && out[i - w]) || (i < n - w && out[i + w])) b[i] = 1;
+      }
+      out.set(b);
+    }
+    for (let i = 0; i < n; i++) if (out[i]) {
+      p[i * 4] = 212; p[i * 4 + 1] = 216; p[i * 4 + 2] = 218; p[i * 4 + 3] = 255;
+    }
+    g.putImageData(id, 0, 0);
+    return cv;
+  }
+
+  mipFor(im, destW) {
+    if (!im._mips) return im;
+    // 확대할수록 원본에 가까운 층을 쓴다 — 목표 폭의 1.5배 이상이면 충분히 선명
+    let pick = im._mips[0];
+    for (const m of im._mips) { const mw = m.naturalWidth || m.width; if (mw >= destW * 2.2) pick = m; else break; }
+    return pick;
+  }
+
+  // what the satellite view highlights right now (distinct from rowsFor(id))
+  visibleRows() {
+    const d = this.state.data; if (!d) return [];
+    const sp = this.state.species;
+    if (sp) {
+      const si = d.names.indexOf(sp);
+      if (si < 0) return [];
+      let rows = d.d.filter(r => r[3] === si && r[0] != null);
+      // 정원을 하나 짚었으면 그 정원에 있는 그 수종만 남긴다
+      const w = this.state.spWhere;
+      if (w) { const inG = rows.filter(r => this.labelOf(r) === w); if (inG.length) rows = inG; }
+      return rows;
+    }
+    // 항공사진은 개체 단위 — 고른 한 그루만 표시하고 전시원 전체를 붉게 칠하지 않는다
+    if (this.state.base === "photo") return [];
+    if (!this.state.garden) return [];   // 선택 해제 상태 — 강조 없이 전체를 보여준다
+    return this.rowsFor(this.state.garden);
+  }
+
+  // ── 확대·축소·이동 ─────────────────────────────────────────────
+  // 배율은 1(전체)~6배. 이동량은 화면 밖으로 지도를 빼내지 못하도록 가둔다
+  navFix(n) {
+    const k = Math.max(this.homeZoom(), Math.min(6, n.k));
+    const el = this.mapRef.current;
+    const cw = el ? el.clientWidth : 0, ch = el ? el.clientHeight : 0;
+    let mx = (cw * (k - 1)) / 2, my = (ch * (k - 1)) / 2;
+    let lo = { x: -mx, y: -my }, hi = { x: mx, y: my };
+    // 항공사진에서는 위성사진이 찍힌 범위까지 끌 수 있게 한다 —
+    // 처음 화면에 안 들어온 남쪽 운동시설·주차장도 끌어서 볼 수 있어야 한다
+    const bg = this._satbg;
+    // 평면도는 위성사진을 받지 않는다 — 평면도 도형(주제원·운동시설 부지)이 닿는 범위를 대신 쓴다(2026-10-27)
+    let ext = bg ? { gx: SAT_BG.gx, gy: SAT_BG.gy, iw: bg.naturalWidth * SAT_BG.gs, ih: bg.naturalHeight * SAT_BG.gs } : null;
+    if (this.state.layer === "plan" && window.PLAN) ext = this.planExtent();
+    if (this.state.base === "photo" && ext && cw && ch) {
+      const b = this.bounds();
+      const bw = b.x1 - b.x0, bh = b.y1 - b.y0;
+      const s0 = Math.min(cw / bw, ch / bh) * 0.97;
+      const ox0 = (cw - bw * s0) / 2 - b.x0 * s0, oy0 = (ch + bh * s0) / 2 + b.y0 * s0;
+      const s = s0 * k;
+      const ox = cw / 2 + (ox0 - cw / 2) * k, oy = ch / 2 + (oy0 - ch / 2) * k;
+      const iw = ext.iw, ih = ext.ih;
+      // 사진은 110° 돌아 있다 — 바깥 사각형(bbox)으로 한계를 잡으면 모서리가
+      // 사진 밖으로 나간다. 돌아간 사진 안쪽에 들어가는 반듯한 사각형을 찾아 쓴다
+      const poly = [[ext.gx, ext.gy], [ext.gx + iw, ext.gy],
+                    [ext.gx + iw, ext.gy + ih], [ext.gx, ext.gy + ih]]
+        .map(([wx, wy]) => { const t = this.turn(wx, wy); return [ox + t[0] * s, oy - t[1] * s]; });
+      let L = 1e9, R = -1e9, T = 1e9, B = -1e9, ccx = 0, ccy = 0;
+      for (const p of poly) {
+        L = Math.min(L, p[0]); R = Math.max(R, p[0]);
+        T = Math.min(T, p[1]); B = Math.max(B, p[1]);
+        ccx += p[0] / 4; ccy += p[1] / 4;
+      }
+      const inside = (px, py) => {
+        let sign = 0;
+        for (let i = 0; i < 4; i++) {
+          const a = poly[i], b = poly[(i + 1) % 4];
+          const cr = (b[0] - a[0]) * (py - a[1]) - (b[1] - a[1]) * (px - a[0]);
+          if (cr === 0) continue;
+          const sg = cr > 0 ? 1 : -1;
+          if (sign === 0) sign = sg; else if (sg !== sign) return false;
+        }
+        return true;
+      };
+      // 평면도는 바탕이 단색이라 돌아간 범위의 바깥 사각형을 그대로 쓴다 — 안쪽 사각형으로 줄이면 남쪽 운동시설이 잘린다
+      // 항공사진도 돌아간 범위의 바깥 사각형까지 끌 수 있게 — 안쪽 사각형으로 줄이면 남쪽 끝 부지(만남의 광장)가 잘렸다(2026-10-28)
+      let f0 = 1, f1 = 1;
+      for (let i = 0; i < 0; i++) {
+        const f = (f0 + f1) / 2, hw = ((R - L) / 2) * f, hh = ((B - T) / 2) * f;
+        const ok = inside(ccx - hw, ccy - hh) && inside(ccx + hw, ccy - hh)
+                && inside(ccx + hw, ccy + hh) && inside(ccx - hw, ccy + hh);
+        if (ok) f0 = f; else f1 = f;
+      }
+      const hw = ((R - L) / 2) * f0, hh = ((B - T) / 2) * f0;
+      L = ccx - hw; R = ccx + hw; T = ccy - hh; B = ccy + hh;
+      // 사진이 화면보다 넓은 축에서만 사진 범위로 한계를 넓힌다.
+      // 좁은 축은 원래의 화면 기준 한계를 그대로 둔다 — 전체 보기(0,0)가 늘 허용된다
+      if (R - L >= cw) { lo.x = Math.min(lo.x, cw - R); hi.x = Math.max(hi.x, -L); }
+      if (B - T >= ch) { lo.y = Math.min(lo.y, ch - B); hi.y = Math.max(hi.y, -T); }
+      lo.x = Math.min(lo.x, 0); hi.x = Math.max(hi.x, 0);
+      lo.y = Math.min(lo.y, 0); hi.y = Math.max(hi.y, 0);
+    }
+    return { k, tx: Math.max(lo.x, Math.min(hi.x, n.tx)), ty: Math.max(lo.y, Math.min(hi.y, n.ty)) };
+  }
+  setNav(n) { this.setState({ nav: this.navFix(n) }); }
+
+  // 손가락/커서가 짚은 지점을 제자리에 두고 그 자리를 중심으로 확대한다
+  zoomAt(f, cx, cy, from) {
+    const el = this.mapRef.current; if (!el) return;
+    const n = from || this.state.nav, b = el.getBoundingClientRect();
+    const ax = (cx == null ? b.width / 2 : cx - b.left) - b.width / 2;
+    const ay = (cy == null ? b.height / 2 : cy - b.top) - b.height / 2;
+    const k = Math.max(this.homeZoom(), Math.min(6, n.k * f)), r = k / n.k;
+    this.setNav({ k, tx: ax - (ax - n.tx) * r, ty: ay - (ay - n.ty) * r });
+  }
+  zoomIn = () => this.zoomAt(1.7);
+  zoomOut = () => this.zoomAt(1 / 1.7);
+  zoomReset = () => this.setNav({ k: this.homeZoom(), tx: 0, ty: 0 });
+
+  bindNav() {
+    const el = this.mapRef.current;
+    if (!el || el._navBound) return;
+    el._navBound = true;
+    const pts = new Map();
+    let st = null;
+    const two = () => Array.from(pts.values());
+    const seed = () => {
+      const a = two();
+      st = a.length >= 2
+        ? { nav: this.state.nav, d: Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y), mx: (a[0].x + a[1].x) / 2, my: (a[0].y + a[1].y) / 2 }
+        : { nav: this.state.nav, x: a[0].x, y: a[0].y };
+    };
+
+    el.addEventListener("wheel", e => {
+      e.preventDefault();
+      this.zoomAt(Math.exp(-e.deltaY * (e.ctrlKey ? 0.012 : 0.0024)), e.clientX, e.clientY);
+    }, { passive: false });
+
+    el.addEventListener("pointerdown", e => {
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      this._moved = 0; seed();
+    });
+    el.addEventListener("pointermove", e => {
+      if (!pts.has(e.pointerId) || !st) return;
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const a = two();
+      if (a.length >= 2 && st.d) {
+        // 두 손가락 — 벌리면 확대, 모으면 축소
+        this._moved = 99;
+        this.zoomAt(Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y) / st.d, st.mx, st.my, st.nav);
+      } else if (a.length === 1) {
+        const dx = e.clientX - st.x, dy = e.clientY - st.y;
+        this._moved = Math.max(this._moved || 0, Math.hypot(dx, dy));
+        // 전체 보기에서는 끌 여유가 없으니 확대된 상태에서만 지도를 민다
+        // 항공사진은 전체 보기에서도 사진 범위 안에서 끌 수 있다
+        if (st.nav.k > 1.01 || this.state.base === "photo")
+          this.setNav({ k: st.nav.k, tx: st.nav.tx + dx, ty: st.nav.ty + dy });
+      }
+    });
+    const up = e => { pts.delete(e.pointerId); if (pts.size) seed(); else st = null; };
+    el.addEventListener("pointerup", up);
+    el.addEventListener("pointercancel", up);
+    el.addEventListener("pointerleave", up);
+    // 지도를 끌고 난 손가락 떼기는 '누름'으로 세지 않는다
+    el.addEventListener("click", e => {
+      // 확대·회전 단추의 누름은 그대로 살린다 — 지도를 끈 직후에도 바로 눌린다
+      const onCtl = e.target && e.target.closest && e.target.closest("[data-map-ctl]");
+      if (!onCtl && (this._moved || 0) > 6) { e.stopPropagation(); e.preventDefault(); this._moved = 0; }
+    }, true);
+    // 두 번 톡 치면 그 자리로 확대, 이미 확대돼 있으면 전체로
+    el.addEventListener("dblclick", e => {
+      e.preventDefault();
+      const n = this.state.nav;
+      if (n.k > this.homeZoom() + 0.01 || Math.abs(n.tx) > 1 || Math.abs(n.ty) > 1) this.zoomReset();
+      else this.zoomAt(2.6, e.clientX, e.clientY);
+    });
+  }
+
+  // 수목원이 실제로 차지하는 자리 — 나무 좌표를 격자에 찍고 조금 부풀린다.
+  // 수목원은 ㄱ자로 굽어 있어 하나의 외곽선(볼록)으로 감싸면 뒤편 산림까지
+  // 함께 들어온다. 격자 방식은 굽은 모양을 그대로 따라간다
+  parkCells() {
+    if (this._cells) return this._cells;
+    const d = this.state.data; if (!d) return null;
+    const pts = d.d.filter(r => r[0] != null);
+    if (!pts.length) return null;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const r of pts) {
+      if (r[0] < x0) x0 = r[0]; if (r[0] > x1) x1 = r[0];
+      if (r[1] < y0) y0 = r[1]; if (r[1] > y1) y1 = r[1];
+    }
+    const cs = Math.max(x1 - x0, y1 - y0) / 260;   // 격자 한 칸(약 6m)
+    const nx = Math.ceil((x1 - x0) / cs) + 1, ny = Math.ceil((y1 - y0) / cs) + 1;
+    let a = new Uint8Array(nx * ny);
+    for (const r of pts) a[Math.round((r[1] - y0) / cs) * nx + Math.round((r[0] - x0) / cs)] = 1;
+    // 나무 사이 산책로·잔디가 구멍으로 남지 않게 3칸 부풀린다
+    for (let k = 0; k < 4; k++) {
+      const b = new Uint8Array(a);
+      for (let y = 0; y < ny; y++) for (let x = 0; x < nx; x++) {
+        if (a[y * nx + x]) continue;
+        if ((x > 0 && a[y * nx + x - 1]) || (x < nx - 1 && a[y * nx + x + 1]) ||
+            (y > 0 && a[(y - 1) * nx + x]) || (y < ny - 1 && a[(y + 1) * nx + x])) b[y * nx + x] = 1;
+      }
+      a = b;
+    }
+    // 격자를 한 장의 작은 그림(칸 하나 = 픽셀 하나)으로 구워 둔다 —
+    // 화면을 그릴 때마다 칸을 하나씩 그리면 확대·이동이 느려진다
+    const bmp = document.createElement("canvas");
+    bmp.width = nx; bmp.height = ny;
+    const bg = bmp.getContext("2d");
+    const im = bg.createImageData(nx, ny);
+    for (let i = 0; i < a.length; i++) if (a[i]) { im.data[i * 4 + 3] = 255; }
+    bg.putImageData(im, 0, 0);
+    return this._cells = { cs, nx, ny, bmp, x0: x0 - cs / 2, y0: y0 - cs / 2 };
+  }
+
+  // 수목원 밖은 안내도의 밝은 여백색을 옅게 덮어 가라앉힌다 —
+  // 완전히 지우면 주변 지형이 사라져 어디인지 알 수 없다
+  maskOutside(g, v, cw, ch) {
+    const pc = this.parkCells(); if (!pc) return;
+    const dpr = window.devicePixelRatio || 1;
+    const m = this._mask || (this._mask = document.createElement("canvas"));
+    const W = Math.round(cw * dpr), H = Math.round(ch * dpr);
+    if (m.width !== W || m.height !== H) { m.width = W; m.height = H; }
+    const q = m.getContext("2d");
+    q.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // 캔버스를 다시 쓰기 때문에 지난번 합성 방식을 반드시 되돌려야 한다
+    q.globalCompositeOperation = "source-over";
+    q.clearRect(0, 0, cw, ch);
+    q.fillStyle = "#E9F0F3";
+    q.fillRect(0, 0, cw, ch);
+    q.globalCompositeOperation = "destination-out";
+    // 구워 둔 그림 한 장을 지도와 같은 방향·배율로 얹어 수목원 자리를 지운다.
+    // 좌표 변환(v.p)은 1차식이므로 세 점만 재면 그림에 그대로 걸 수 있다
+    const o = v.p(0, 0), ex = v.p(1, 0), ey = v.p(0, 1);
+    q.transform(ex[0] - o[0], ex[1] - o[1], ey[0] - o[0], ey[1] - o[1], o[0], o[1]);
+    q.translate(pc.x0, pc.y0);
+    q.scale(pc.cs, pc.cs);
+    q.imageSmoothingEnabled = true;
+    q.imageSmoothingQuality = "high";
+    // 경계를 흐리게 지워 수목원 안팎이 부드럽게 이어지게 한다
+    q.filter = "blur(9px)";
+    q.drawImage(pc.bmp, 0, 0, pc.nx, pc.ny);
+    q.filter = "none";
+    g.save();
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    // 옅게 얹어 수목원 밖 사진이 배경으로 남게 한다
+    g.globalAlpha = this.props.photoOutsideFade == null ? 0.72 : this.props.photoOutsideFade;
+    g.drawImage(m, 0, 0);
+    g.restore();
+  }
+
+  draw = () => {
+    const c = this.canvasRef.current;
+    if (!c || this.state.base !== "photo") return;
+    const dpr = window.devicePixelRatio || 1;
+    const cw = c.clientWidth, ch = c.clientHeight;
+    if (!cw || !ch) return;
+    if (c.width !== Math.round(cw * dpr)) { c.width = Math.round(cw * dpr); c.height = Math.round(ch * dpr); }
+    const g = c.getContext("2d");
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, cw, ch);
+    const v = this.view(cw, ch); this._v = v;
+
+    // 사진 바깥은 안내도의 밝은 여백과 같은 색으로 둔다
+    const plan = this.state.layer === "plan" && window.PLAN;
+    g.fillStyle = plan ? "#E6ECE3" : "#E9F0F3"; g.fillRect(0, 0, cw, ch);
+    if (plan) this.drawPlan(g, v);
+
+    // 넓게 찍힌 위성사진을 먼저 깔아, 드론사진이 끝나는 자리에서 화면이 잘리지 않게 한다
+    if (this._satbg && !plan) {
+      const bw = this._satbg.naturalWidth, bh = this._satbg.naturalHeight;
+      const biw = bw * SAT_BG.gs, bih = bh * SAT_BG.gs;
+      const M = this.mat(v);
+      const bsx = Math.hypot(M[0], M[1]);
+      // 위성사진 모서리 바깥까지 끌었을 때 빈칸이 보이지 않게, 사진을 크게 늘려
+      // 흐리게 한 겹을 먼저 깔아 둔다 — 주변 색·질감이 그대로 이어진다
+      g.save();
+      g.filter = "blur(24px) saturate(1.2) brightness(1.02)";
+      g.transform(M[0], M[1], M[2], M[3], M[4], M[5]);
+      g.translate(SAT_BG.gx, SAT_BG.gy + bih); g.scale(SAT_BG.gs, -SAT_BG.gs);
+      g.translate(bw / 2, bh / 2); g.scale(1.6, 1.6); g.translate(-bw / 2, -bh / 2);
+      g.drawImage(this.mipFor(this._satbg, 1000), 0, 0, bw, bh);
+      g.restore();
+
+      g.save();
+      g.filter = "saturate(1.5) contrast(1.16) brightness(1.04)";
+      g.transform(M[0], M[1], M[2], M[3], M[4], M[5]);
+      g.translate(SAT_BG.gx, SAT_BG.gy + bih); g.scale(SAT_BG.gs, -SAT_BG.gs);
+      g.drawImage(this.mipFor(this._satbg, biw * bsx * dpr), 0, 0, bw, bh);
+      g.restore();
+    }
+
+    if (this._sat && !plan) {
+      const nw = this._sat.naturalWidth, nh = this._sat.naturalHeight;
+      const iw = nw * SAT.gs, ih = nh * SAT.gs;
+      // 예전처럼 선명하게: 흰 베일을 걷고 채도·명암을 올려 그린다
+      g.save();
+      g.filter = "saturate(1.5) contrast(1.16) brightness(1.04)";
+      // 사진에도 나무 좌표와 똑같은 변환을 걸어, 안내도와 같은 모양이 되게 한다
+      const M = this.mat(v);
+      const sx = Math.hypot(M[0], M[1]);
+      g.transform(M[0], M[1], M[2], M[3], M[4], M[5]);
+      g.translate(SAT.gx, SAT.gy + ih); g.scale(SAT.gs, -SAT.gs);
+      // 원본 사진 네 변에 있는 어두운 테두리를 잘라내고 그린다 —
+      // 잘라낸 자리는 위에서 깔아둔 밝은 여백이 그대로 보인다
+      const tx = nw * SAT_TRIM, ty = nh * SAT_TRIM;
+      // 사진이 못 미치는 화면 여백이 흰 빈칸으로 보이지 않게, 사진을 크게 늘려
+      // 흐리게 한 겹을 먼저 깔아 둔다 — 주변 색·질감이 그대로 이어져 자연스럽다
+      if (!this._satbg) {
+        const bl = this.mipFor(this._sat, 900);
+        g.save();
+        g.filter = "blur(26px) saturate(1.25) brightness(1.02)";
+        g.translate(nw / 2, nh / 2); g.scale(1.9, 1.9); g.translate(-nw / 2, -nh / 2);
+        g.drawImage(bl, 0, 0, nw, nh);
+        g.restore();
+      }
+      g.save();
+      g.filter = "saturate(1.5) contrast(1.16) brightness(1.04)";
+      g.beginPath(); g.rect(tx, ty, nw - tx * 2, nh - ty * 2); g.clip();
+      g.drawImage(this.mipFor(this._sat, iw * sx * dpr), 0, 0, nw, nh);
+      g.restore();
+      g.restore();
+      // 수목원 밖 사진은 그대로 둔다 — 산능선·마을·운동장이 배경으로 보여야
+      // 처음 오는 사람도 수목원이 어디에 있는지 가늠한다
+    }
+
+    const d = this.state.data; if (!d) return;
+
+    // garden areas: 항공사진 위에는 주제원 테두리·면을 그리지 않는다 — 사진과 점만 깔끔하게(2026-10-28 사용자)
+    if (this._hulls && false) {
+      // largest first, so a nested garden is never buried under its neighbour
+      for (const z of this._hulls.slice().sort((a, b) => b.area - a.area)) {
+        const on = this.state.species ? z.id === this.state.spWhere : z.id === this.state.garden;
+        if (plan && !on) continue;
+        g.beginPath();
+        z.hull.forEach((p, i) => { const q = v.p(p[0], p[1]); i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); });
+        g.closePath();
+        g.globalAlpha = on ? 0.30 : 0.10;
+        g.fillStyle = PAL[z.ci % PAL.length]; g.fill();
+        g.globalAlpha = on ? 0.95 : 0.30;
+        g.strokeStyle = PAL[z.ci % PAL.length]; g.lineWidth = on ? 2.4 : 1; g.stroke();
+      }
+      g.globalAlpha = 1;
+    }
+
+    // every registered tree as a quiet dot, so the satellite view reads as a
+    // planting map at a glance; the selection is drawn over it in red
+    const rows = this.visibleRows();
+    const pick = new Set(rows);
+    // imagery is dark, so an unselected dot must be LIGHT to read at all
+    const base = Math.max(2, Math.min(4, 0.8 * v.s));
+    g.strokeStyle = "rgba(26,32,20,.62)";
+    g.lineWidth = base > 2.6 ? 1 : 0.7;
+    // 수종마다 다른 색. 같은 색끼리 묶어 그려야 채색 전환이 점 수만큼 일어나지 않는다
+    const buckets = new Map();
+    for (const r of d.d) {
+      if (r[0] == null || pick.has(r)) continue;
+      const q = v.p(r[0], r[1]), x = q[0], y = q[1];
+      if (x < -6 || x > cw + 6 || y < -6 || y > ch + 6) continue;
+      // 수종마다 다른 색(한 색으로 바꿔 봤다가 사용자가 원래대로, 2026-10-28)
+      const ci = r[3] >= 0 ? r[3] % DOT_PAL.length : -1;
+      let a = buckets.get(ci); if (!a) buckets.set(ci, a = []);
+      a.push(x, y);
+    }
+    // 수종이나 나무를 고르면 나머지 점은 흐리게 — 붉은 점만 눈에 띈다
+    g.strokeStyle = "rgba(26,32,20,.62)";
+    g.lineWidth = base > 2.6 ? 1.1 : 0.8;
+    if (rows.length) g.globalAlpha = 0.45;
+    if (plan) { g.globalAlpha = 0.55; g.strokeStyle = "rgba(255,255,255,.9)"; g.lineWidth = 0.6; }
+    for (const [ci, xy] of buckets) {
+      g.fillStyle = plan ? "#7FA36B" : ci < 0 ? "#E8EDE4" : DOT_PAL[ci];
+      g.beginPath();
+      for (let i = 0; i < xy.length; i += 2) {
+        g.moveTo(xy[i] + base, xy[i + 1]);
+        g.arc(xy[i], xy[i + 1], base, 0, 6.2832);
+      }
+      g.fill(); g.stroke();
+    }
+    g.globalAlpha = 1;
+
+    // 붉은 표시가 놓일 자리를 먼저 잡아 둔다 — 정원 이름이 그 위에 겹치지 않게
+    const rad = Math.max(4.5, Math.min(9, 1.6 * v.s));
+    const spts = [];
+    for (const r of rows) {
+      const q = v.p(r[0], r[1]), x = q[0], y = q[1];
+      if (x < -10 || x > cw + 10 || y < -10 || y > ch + 10) continue;
+      spts.push([x, y]);
+    }
+    let avoid = null, ring = null;
+    if (spts.length) {
+      const cx = spts.reduce((a, p) => a + p[0], 0) / spts.length;
+      const cy = spts.reduce((a, p) => a + p[1], 0) / spts.length;
+      let sp = 0;
+      for (const p of spts) sp = Math.max(sp, Math.hypot(p[0] - cx, p[1] - cy));
+      // 몇 그루뿐이면 점이 작아 눈에 안 띈다 — 모인 자리에 겨냥 링을 둘러 준다
+      // (겨냥 링은 그리지 않는다 — 깔끔하게, 2026-10-28 사용자. 이름표 비키는 자리 계산에만 쓴다)
+      if (spts.length <= 14 && !this.state.tree) ring = { cx, cy, r: sp + rad + 9, hide: true };
+      // 붉은 점이 여러 곳에 흩어져 있으면 비킬 자리가 수목원 전체가 돼 이름표가 다 사라졌다 — 몇 그루가 한데 모였을 때만 비킨다
+      if (ring) { const pad = ring.r + 4; avoid = { x0: cx - pad, x1: cx + pad, y0: cy - pad, y1: cy + pad }; }
+    }
+
+    // 정원 이름을 먼저 얹는다 — 붉은 표시가 이름에 가려 사라지던 문제
+    // (생태습지원처럼 나무 몇 그루가 이름 글자 바로 아래 모여 있는 경우)
+    if (this._hulls) {
+      g.textAlign = "center"; g.textBaseline = "middle";
+      g.lineJoin = "round"; g.miterLimit = 2;
+      // 휴대폰처럼 좁은 화면은 글씨를 조금 줄여 이름이 더 많이 들어가게 한다
+      g.font = (this.state.wide ? "700 13px" : "700 11px") + " 'Noto Sans KR', sans-serif";
+      // biggest gardens claim their space first; anything that would overlap is
+      // dropped rather than printed on top of a neighbour
+      const placed = [];
+      const sel = this.state.species ? this.state.spWhere : this.state.garden;
+      // 이름표는 안내도와 같은 목록(SPOTS)으로 붙인다 — 월가든1·2, 장미원 두 곳, 토피아리원2처럼
+      // 나무가 적거나 이름이 둘로 나뉜 곳도 안내도에 있으면 항공사진에도 보인다(2026-10-24).
+      // 자리는 안내도 글자 위치를 항공사진 좌표로 옮긴 곳 — 나무 무리 가운데에 두면 대장 구역과
+      // 안내도 구역이 다른 곳(사계화원·가을원)에서 이름이 엉뚱하게 앉았다(2026-10-24 사용자 지적)
+      if (!this._satLabels || this._satLabelsOf !== this._hulls) {
+        const nOf = new Map();
+        for (const z of this._hulls) nOf.set(z.id, (nOf.get(z.id) || 0) + z.n);
+        // 안내도 위치는 그림이라 항공사진과 어긋나는 곳이 있다(남쪽 가을원·세움정원·편백원·난대림원이 길 위로 밀림).
+        // 안내도 위치 70m 안에 그 이름의 나무가 5그루 이상 있으면, 그 나무들의 가운데(중앙값)로 옮긴다 —
+        // 이름표가 그 주제원의 실제 나무 위에 앉는다. 나무가 없는 곳(동백숲·암석원·미로원)은 안내도 위치 그대로
+        const med = a => { const b = a.slice().sort((x, y) => x - y); return b[b.length >> 1]; };
+        const SNAP_R = 70, SNAP_SKIP = { "사계화원": 1 };
+        this._satLabels = SPOTS.map(s => {
+          let cx = s.mx, cy = s.my;
+          const pts = SNAP_SKIP[s.id] ? null : (this._ptsById && this._ptsById.get(s.id));
+          if (pts) {
+            const near = pts.filter(p => Math.hypot(p[0] - s.mx, p[1] - s.my) < SNAP_R);
+            if (near.length >= 5) { cx = med(near.map(p => p[0])); cy = med(near.map(p => p[1])); }
+          }
+          return { id: s.id, name: s.name, cx, cy, n: nOf.get(s.id) || 0 };
+        });
+        for (const [name, cx, cy] of FAC_LABELS) this._satLabels.push({ id: "시설:" + name, name, cx, cy, n: 0, fac: true });
+        this._satLabelsOf = this._hulls;
+      }
+      const queue = this._satLabels.slice()
+        .sort((a, b) => (b.id === sel) - (a.id === sel) || b.n - a.n);
+      for (const z of queue) {
+        const name = z.name;
+        const cx = z.cx, cy = z.cy;
+        const q = v.p(cx, cy), x = q[0];
+        let y = q[1];
+        const tw = g.measureText(name).width;
+        const box = yy => ({ x0: x - tw / 2 - 4, x1: x + tw / 2 + 4, y0: yy - 10, y1: yy + 10 });
+        const clash = r => r.x0 < avoid.x1 && r.x1 > avoid.x0 && r.y0 < avoid.y1 && r.y1 > avoid.y0;
+        // 이웃 이름과 부딪히면 곧바로 버리지 말고 위아래로 조금씩 비켜 본다 —
+        // 침엽수원처럼 이름이 통째로 사라지던 정원이 있었다
+        const free = rr => !placed.some(p => rr.x0 < p.x1 && rr.x1 > p.x0 && rr.y0 < p.y1 && rr.y1 > p.y0)
+          && !(avoid && clash(rr));
+        let r = null;
+        // 화면 가장자리에 걸리는 이름도 화면 안으로 끌어오지 않는다 — 끌어오면
+        // 지도를 끌어 옮길 때 가장자리 이름만 사진과 따로 놀며 따라 올라온다
+        // 너무 멀리 비키면 이름이 엉뚱한 주제원 위에 앉는다(휴대폰에서 잔디광장이 무궁화동산 쪽으로 감) — 조금만 비켜 보고, 안 되면 그 이름은 뺀다
+        for (const dy of [0, -12, 12, -22, 22]) {
+          const cand = box(y + dy);
+          if (free(cand)) { r = cand; y = y + dy; break; }
+        }
+        if (!r) continue;
+        placed.push(r);
+        g.lineWidth = 4; g.strokeStyle = "rgba(255,255,255,.94)"; g.strokeText(name, x, y);
+        g.fillStyle = z.id === sel ? "#12352F" : "#3C4A44";
+        g.fillText(name, x, y);
+      }
+    }
+
+    // 고른 나무들을 이름 위에 그린다
+    for (const p of spts) {
+      g.beginPath(); g.arc(p[0], p[1], rad, 0, 6.2832);
+      g.fillStyle = "#C4442E"; g.fill();
+      g.lineWidth = 2; g.strokeStyle = "#FFFFFF"; g.stroke();
+    }
+    if (ring && !ring.hide) {
+      g.beginPath(); g.arc(ring.cx, ring.cy, ring.r, 0, 6.2832);
+      g.lineWidth = 3; g.strokeStyle = "rgba(255,255,255,.85)"; g.stroke();
+      g.lineWidth = 2; g.strokeStyle = "#C4442E"; g.stroke();
+    }
+
+    // 고른 한 그루는 겨냥 링으로 따로 표시한다
+    const t = this.state.tree;
+    if (t && t[0] != null) {
+      const q = v.p(t[0], t[1]), x = q[0], y = q[1];
+      const rr = Math.max(5, Math.min(12, 2.2 * v.s));
+      g.beginPath(); g.arc(x, y, rr, 0, 6.2832);
+      g.fillStyle = "#C4442E"; g.fill();
+      g.lineWidth = 2.4; g.strokeStyle = "#FFFFFF"; g.stroke();
+      g.beginPath(); g.arc(x, y, rr + 7, 0, 6.2832);
+      g.lineWidth = 2; g.strokeStyle = "rgba(196,68,46,.75)"; g.stroke();
+    }
+  };
+
+  onCanvasClick = e => {
+    const c = this.canvasRef.current; if (!c || !this._v || !this.state.data) return;
+    const b = c.getBoundingClientRect();
+    const px = e.clientX - b.left, py = e.clientY - b.top;
+    const v = this._v, d = this.state.data;
+    const XY = v.inv(px, py), X = XY[0], Y = XY[1];
+
+    // 등록된 모든 나무가 언제나 클릭 대상이다 — 점을 눌렀는데 반응이 없는 상태를 없앤다
+    {
+      let t = null, td = 12 * 12;
+      for (const r of d.d) {
+        if (r[0] == null) continue;
+        const dd = (r[0] - X) ** 2 + (r[1] - Y) ** 2;
+        if (dd < td) { td = dd; t = r; }
+      }
+      // 같은 나무를 다시 누르면 선택 해제
+      if (t) { this.setState({ tree: t === this.state.tree ? null : t, species: null, spWhere: null, query: "" }); return; }
+      if (this.state.tree) { this.setState({ tree: null }); return; }
+    }
+
+    // 어느 구역을 눌렀는지 먼저 정한다 — 구역이 바뀌는 클릭이라면 수종이 아니라
+    // 그 구역을 열어야 한다 (선택을 풀려고 눌렀는데 엉뚱한 나무가 잡히던 문제)
+    let hit = null;
+    if (this._hulls) {
+      for (const z of this._hulls) {
+        // smallest containing zone wins: nested gardens sit inside bigger hulls,
+        // so first-match would always hand back the sprawling neighbour
+        if (!INERT[z.id] && this.inside(X, Y, z.hull) && (!hit || z.area < hit.area)) hit = z;
+      }
+    }
+    const cur = this.state.garden;
+    const sameZone = hit && hit.id === cur;
+
+    // 이미 고른 구역을 다시 누르면 나무가 아니라 선택 해제 — 점이 촘촘해서
+    // "빈 땅만 눌러야 풀리는" 방식은 사실상 풀 수 없었다
+    if (sameZone && !this.state.species && !this.state.tree) {
+      this.setState({ garden: null, species: null, query: "", tree: null, spWhere: null });
+      if (location.hash) history.replaceState(null, "", location.pathname);
+      return;
+    }
+
+    if (this.state.species || !hit) {
+      // 수종을 보고 있을 때는 화면의 모든 나무가 대상이다 — 강조된 점만 집으면
+      // 다른 나무를 눌러도 먼저 고른 수종이 계속 선택된 채로 남는다
+      const cand = this.state.species ? d.d.filter(r => r[0] != null) : this.visibleRows();
+      let best = null, bd = 15 * 15;
+      for (const r of cand) {
+        const dd = (r[0] - X) ** 2 + (r[1] - Y) ** 2;
+        if (dd < bd) { bd = dd; best = r; }
+      }
+      if (best && best[3] >= 0) {
+        const nm = String(d.names[best[3]]).replace(/\s+/g, " ").trim();
+        // 같은 수종을 다시 누르면 선택 해제
+        this.setState({ species: nm === this.state.species ? null : nm, query: "", tree: null, spWhere: null, pv: null });
+        return;
+      }
+    }
+
+    if (hit) {
+      const off = !this.state.species && !this.state.tree && cur === hit.id;
+      this.setState({ garden: off ? null : hit.id, species: null, query: "", tree: null, spWhere: null });
+      return;
+    }
+    // 구역도 나무도 없는 빈 땅 — 안내도와 같이 선택 해제로 받는다
+    if (this.state.garden || this.state.species || this.state.tree) {
+      if (location.hash) history.replaceState(null, "", location.pathname);
+      this.setState({ garden: null, species: null, query: "", tree: null, spWhere: null, pv: null });
+    }
+  };
+
+  inside(x, y, poly) {
+    let hit = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const xi = poly[i][0], yi = poly[i][1], xj = poly[j][0], yj = poly[j][1];
+      if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) hit = !hit;
+    }
+    return hit;
+  }
+
+  walkFor(name, X, Y) { return WALK_MIN[name] ? WALK_MIN[name] + "분" : this.walkTo(X, Y); }
+
+  walkTo(X, Y) {
+    // 길 돌아가는 비율 — 직원이 정한 바깥쪽 주제원 5곳(가을원·세움정원·난대림원·월가든1·2) 실제 시간에 맞춤(2026-10-26).
+    // 가운데 언덕(장미원·잔디광장·토피아리원)은 계단·오르막이라 이보다 훨씬 오래 걸려 WALK_MIN으로 따로 정한다
+    const m = Math.hypot(X - GATE[0], Y - GATE[1]) * 1.42;
+    return Math.max(1, Math.round(m / 67)) + "분";
+  }
+
+  // trees belonging to an 안내도 label, honouring the re-divided areas
+  rowsFor(id) {
+    const d = this.state.data;
+    if (!d || SURVEYING[id]) return [];
+    // 자리로 옮겨 세는 주제원(REMAP)은 labelFor 결과로 바로 모은다
+    if (REMAP.some(m => m.to === id || m.from === id || m.from === "*")) {
+      this._rowsCache = this._rowsCache && this._rowsCache.d === d ? this._rowsCache : { d, m: {} };
+      return this._rowsCache.m[id] || (this._rowsCache.m[id] = d.d.filter(r =>
+        r[0] != null && zoneOf(d.gardens, r) === id));
+    }
+    const sibs = Object.keys(SPLIT).find(k => SPLIT[k].some(s => s.id === id));
+    if (sibs) {
+      const gi = d.gardens.indexOf(sibs);
+      if (gi < 0) return [];
+      const group = SPLIT[sibs];
+      return d.d.filter(r => {
+        if (r[2] !== gi || r[0] == null) return false;
+        const pl = splitPoly(sibs, r[0], r[1]); if (pl) return pl === id;
+        let best = group[0], bd = Infinity;
+        for (const s of group) {
+          const dd = (r[0] - s.mx) ** 2 + (r[1] - s.my) ** 2;
+          if (dd < bd) { bd = dd; best = s; }
+        }
+        return best.id === id;
+      });
+    }
+    // a renamed label (허브길 ← 허브원, 봄꽃원 ← 고사식물덩굴원) must resolve through src,
+    // never through its own name — the registry still holds a stale record under it
+    const sp = SPOTS.find(s => s.id === id);
+    const src = sp ? sp.src : id;
+    if (!src) return [];
+    const gi = d.gardens.indexOf(src);
+    return gi >= 0 ? d.d.filter(r => r[2] === gi && r[0] != null) : [];
+  }
+
+  // which 안내도 label a single tree now falls under
+  // 위치 대장 기준 수종 → 주제원별 그루 수 (자료가 바뀔 때만 다시 센다)
+  speciesGardens() {
+    const d = this.state.data;
+    if (!d) return new Map();
+    if (this._sgData === d) return this._sg;
+    const m = new Map();
+    for (const r of d.d) {
+      if (r[0] == null || r[3] < 0) continue;
+      const nm = String(d.names[r[3]]).replace(/\s+/g, " ").trim();
+      const L = this.labelOf(r); if (!L) continue;
+      if (!m.has(nm)) m.set(nm, new Map());
+      const g = m.get(nm); g.set(L, (g.get(L) || 0) + 1);
+    }
+    this._sgData = d; this._sg = m;
+    return m;
+  }
+
+  labelOf(r) {
+    const d = this.state.data;
+    if (!d) return null;
+    const L = zoneOf(d.gardens, r);
+    return !L || SURVEYING[L] ? null : L;
+  }
+
+  _ph = {};
+
+  // 사진은 파일 이름으로 연결된다 — assets/photos/<수종명>.jpg 가 대표 사진,
+  // <수종명>_꽃.jpg 처럼 부위 이름을 붙이면 같은 수종의 사진으로 함께 묶인다.
+  // 있는지 먼저 확인해 두어, 없는 부위는 자리도 만들지 않는다
+  probePhoto(name) {
+    if (!name || this._ph[name]) return;
+    const rec = { list: [] };
+    this._ph[name] = rec;
+    // 사진정리 폴더에서 자동으로 만든 목록(data/photos.js)이 있으면 그것을 쓴다.
+    // 이름은 띄어쓰기·따옴표를 빼고 맞춘다 — 위치도 "향나무 '가이즈카'" = 도감 "향나무'가이즈카'"
+    const P = window.PHOTOS;
+    if (P) {
+      const norm = s => s.replace(/[\s'‘’]/g, "");
+      if (!this._phIdx) { this._phIdx = {}; for (const k in P) this._phIdx[norm(k)] = P[k]; }
+      const got = this._phIdx[norm(name)];
+      if (got) {
+        const CT = window.PHOTO_CREDIT_TEXT || [];
+        const LABEL = { "수피": "나무껍질" };
+        rec.list = got.map(([f, part, c, w, h], i) => ({
+          part: LABEL[part] || part, url: "assets/photos/w/" + f + ".webp",
+          thumb: "assets/photos/t/" + f + ".webp", i, key: f, credit: CT[c] || "", w, h
+        }));
+        return;
+      }
+      // 목록에 없는 수종은 아직 사진이 없는 것 — 없는 파일을 하나하나 찾아보지 않는다
+      if (!window.PHOTO_PROBE_FALLBACK) return;
+    }
+    // 한 부위에 여러 장을 넣을 수 있다 — 잎.jpg, 잎2.jpg, 잎3.jpg 순으로 찾는다.
+    // 번호가 끊기면 거기서 멈추므로 빠진 번호 없이 이어서 붙여야 한다
+    const tryOne = (part, n, i) => {
+      const suf = part ? "_" + part + (n > 1 ? n : "") : "";
+      // 문서에 미리 걸어 둔 사진(공유할 때 함께 실리는 것)을 우선 쓴다
+      const pre = document.querySelector('[data-photo="' + name + suf + '"]');
+      const url = pre ? pre.getAttribute("src")
+                      : "assets/photos/" + encodeURIComponent(name + suf) + ".jpg";
+      const im = pre || new Image();
+      const hit = () => {
+        rec.list.push({ part: part || "대표", url, i: i * 100 + n, key: name + suf });
+        rec.list.sort((a, b) => a.i - b.i);
+        this.forceUpdate();
+        if (part && n < 8) tryOne(part, n + 1, i);
+      };
+      if (im.complete && im.naturalWidth) { hit(); return; }
+      im.onload = hit;
+      im.onerror = () => {};
+      if (!pre) im.src = url;
+    };
+    ["", "전체", "수형", "꽃", "새순", "잎", "열매", "수피"].forEach((part, i) => tryOne(part, 1, i));
+  }
+
+  renderVals() {
+    const spName = this.state.species || "";
+    this.probePhoto(spName);
+    const ph = (this._ph[spName] && this._ph[spName].list) || [];
+    const cover = ph.length ? (ph[0].thumb || ph[0].url) : null;
+    // 대표 사진은 가로칸에 맞춰 잘라 둔 것 — 부위 사진이 따로 있으면 크게 볼 때는 그쪽을 쓴다
+    const gal = ph.length > 1 ? ph.filter(p => p.part !== "대표") : ph;
+    const pvIdx = Math.min(this.state.pv == null ? 0 : this.state.pv, Math.max(gal.length - 1, 0));
+    const pvOpen = this.state.pv != null && gal.length > 0;
+    // 부위 단추는 부위마다 하나 — 같은 부위 사진 여러 장은 그 안에서 넘긴다
+    const pvParts = gal.reduce((a, p) => (a.indexOf(p.part) < 0 ? a.concat([p.part]) : a), []);
+    const pvPart = pvOpen ? gal[pvIdx].part : "";
+    const pvSame = gal.map((p, i) => (p.part === pvPart ? i : -1)).filter(i => i >= 0);
+    const cr = this._credits || {};
+    const pvKey = pvOpen ? gal[pvIdx].key : "";
+    const pvCredit = pvOpen ? (gal[pvIdx].credit || cr[pvKey] || cr[spName] || "") : "";
+    // 맨 위 큰 사진의 출처 — 공공누리 사진은 사진 옆에 출처를 밝혀야 한다
+    const coverCredit = ph.length ? (ph[0].credit || cr[ph[0].key] || cr[spName] || "") : "";
+    const d = this.state.data;
+    const wide = this.state.wide;
+    const fixedH = this.state.fixedHost;
+    const nav = this.state.nav || { k: 1, tx: 0, ty: 0 };
+    // degrade to names-only if the copy file ever fails to load
+    const info = (this._info && this._info.SPECIES && this._info.GARDEN_INFO)
+      ? this._info : { SPECIES: {}, GARDEN_INFO: {} };
+    const base = this.state.base;
+
+    const counts = new Map();
+    if (d) for (const r of d.d) if (r[3] >= 0) counts.set(d.names[r[3]], (counts.get(d.names[r[3]]) || 0) + 1);
+
+    const q = this.state.query.trim();
+    // searches all 336 registered names, not a curated shortlist
+    const hits = q && d
+      ? [...counts.entries()].filter(([n]) => n.includes(q)).sort((a, b) => b[1] - a[1])
+      : [];
+    const results = hits.slice(0, 30);
+
+    const mark = h => { if (location.hash !== "#" + h) history.replaceState(null, "", "#" + h); };
+    // 수종을 고르면 개체 선택은 버린다 — 두 선택이 지도에 동시에 남아 있으면
+    // 무엇이 골라진 건지 알 수 없다
+    const pickSpecies = name => () => { mark("수종=" + encodeURIComponent(name)); this.setState({ species: name, query: "", tree: null, spWhere: null, pv: null }); };
+    // 같은 정원을 다시 누르면 선택을 풀고 수목원 전체 안내로 돌아간다
+    const pickGarden = name => e => {
+      // 표식은 지도 위에 얹혀 있으므로 배경의 해제 처리까지 올라가지 않게 막는다
+      if (e && e.stopPropagation) e.stopPropagation();
+      const off = !this.state.species && !this.state.tree && this.state.garden === name;
+      if (off) { if (location.hash) history.replaceState(null, "", location.pathname); }
+      else mark("정원=" + encodeURIComponent(name));
+      this.setState({ garden: off ? null : name, species: null, query: "", tree: null, allSpecies: false, spWhere: null });
+    };
+    // 안내도의 빈 곳(하늘색 여백·정원 아닌 부분)을 누르면 선택 해제 — 관람객이
+    // "취소"를 찾지 않고 지도 밖을 누르는 게 가장 자연스러운 동작이다
+    const clearSel = () => {
+      if (!this.state.garden && !this.state.species && !this.state.tree && !this.state.query) return;
+      if (location.hash) history.replaceState(null, "", location.pathname);
+      this.setState({ garden: null, species: null, query: "", tree: null, allSpecies: false, spWhere: null, pv: null });
+    };
+
+    const rowBtn = {
+      display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10,
+      padding: "11px 14px", borderRadius: "10px", background: "#F0F4F1",
+      border: "1px solid #E2E9E4", cursor: "pointer"
+    };
+
+    const treeMode = this.state.base === "photo";
+    const tRow = treeMode ? this.state.tree : null;
+    let td = null;
+    if (tRow && d) {
+      const tname = tRow[3] >= 0 ? d.names[tRow[3]] : "미확인 수종";
+      const e = (info.SPECIES && info.SPECIES[tname]) || {};
+      // 대장 구역 이름(초식동물원·고사식물덩굴원 등 예전 이름)이 아니라 2026 안내도 이름으로 보여 준다(2026-10-24).
+      // 안내도에 없는 녹지대·운동시설·교통섬은 '녹지대'로 적는다
+      let tg = zoneOf(d.gardens, tRow) || "";
+      if (tg && !SPOT_XY[tg]) tg = "녹지대";
+      if (!tg && this._hulls) {
+        let hit = null;
+        for (const z of this._hulls) if (this.inside(tRow[0], tRow[1], z.hull) && (!hit || z.area < hit.area)) hit = z;
+        if (hit) tg = hit.id;
+      }
+      // 대장 원본 번호는 GUID라 관람객에게 보일 값이 아니다 — 수종 내 순번으로 바꿔 쓴다
+      const kin = tRow[3] >= 0 ? d.d.filter(r => r[3] === tRow[3]) : [];
+      const same = kin.length;
+      const seq = kin.indexOf(tRow) + 1;
+      td = {
+        no: seq > 0 ? "· " + seq + "번" : "",
+        name: tname, sci: e.sci || "학명 정리 중", sciParts: this.sciParts(e.sci || "학명 정리 중"),
+        desc: e.lead || e.desc || "", hasDesc: !!(e.lead || e.desc),
+        garden: tg || "녹지대",
+        sameN: same ? same.toLocaleString() + "주" : "기록 정리 중",
+        facts: [
+          { k: "주제원", v: tg || "녹지대" },
+          { k: "과", v: e.fam || "—" },
+          { k: "안내소에서", v: "도보 " + this.walkFor(tg, tRow[0], tRow[1]) }
+        ],
+        btn: {
+          display: "flex", alignItems: "baseline", justifyContent: "space-between",
+          gap: "10px", padding: "13px 15px", background: "#fff",
+          border: "1px solid #DCE5DD", borderRadius: "12px", cursor: "pointer",
+          minHeight: "44px", boxSizing: "border-box"
+        },
+        toSpecies: pickSpecies(tname),
+        // 안내도에 있는 주제원만 '안내 보기'로 넘어간다 — 녹지대·막아 둔 구역은 버튼을 숨긴다
+        hasGarden: !!(tg && SPOT_XY[tg] && !INERT[tg]),
+        toGarden: tg && SPOT_XY[tg] && !INERT[tg] ? () => this.setState({ garden: tg, species: null, tree: null, query: "", allSpecies: false }) : null
+      };
+    }
+
+    let sp = null, viewSpecies = false, spByG = null;
+    if (this.state.species && d) {
+      viewSpecies = true;
+      const name = this.state.species;
+      const e = info.SPECIES[name] || {};
+      const si = d.names.indexOf(name);
+      const rows = si >= 0 ? d.d.filter(r => r[3] === si && r[0] != null) : [];
+      const byG = new Map();
+      // 조사 중인 주제원(SURVEYING)의 나무는 목록에서 빼되, 숫자가 맞게 따로 센다
+      let surveyN = 0, noZoneN = 0;
+      for (const r of rows) {
+        const L = this.labelOf(r); if (L) { byG.set(L, (byG.get(L) || 0) + 1); continue; }
+        if (SURVEYING[zoneOf(d.gardens, r)]) surveyN++;
+        // 대장에 구역 없이 위치만 있는 나무 — 목록에 없던 탓에 그루 수를 더해도 등록 수목과 안 맞았다(2026-10-24)
+        else if (!zoneOf(d.gardens, r)) noZoneN++;
+      }
+      // 안내도 표시용 — 고른 수종이 어느 정원에 몇 주 있는지
+      spByG = byG;
+      const spotIds = new Set(SPOTS.map(s => s.id));
+      const mainG = [...byG.entries()].filter(([g]) => spotIds.has(g)).sort((a, b) => b[1] - a[1]);
+      const otherN = [...byG.entries()].filter(([g]) => !spotIds.has(g)).reduce((a, [, n]) => a + n, 0);
+      const facts = [];
+      if (e.bloom) facts.push({ k: "시기", v: e.bloom });
+      if (e.origin) facts.push({ k: "원산지", v: e.origin });
+      // 위치도에 아직 없는 나무(올해 심은 나무 등)는 0주 대신 준비 중이라고 알린다
+      facts.push({ k: "등록 수목", v: counts.get(name) ? counts.get(name).toLocaleString() + "주" : "위치 정보 준비 중" });
+      sp = {
+        name, sci: e.sci || "학명 정리 중", sciParts: this.sciParts(e.sci || "학명 정리 중"), fam: e.fam || "",
+        // 출처가 없는 수종은 출처 줄을 아예 숨긴다 — "출처 확인 전"을 관람객에게 보이지 않는다(2026-10-24)
+        // 해설 글이 없는 수종(학명·과명만 있는 서양자두나무 등)은 참고 자료 줄도 숨긴다(2026-10-28 사용자)
+        src: e.src ? "참고 자료 · " + e.src : "", hasSrc: !!e.src && !!(e.lead || e.desc || e.leaf || e.flower || e.fruit || e.bark),
+        srcStyle: { fontSize: "13px", lineHeight: 1.6, color: "#5C7069", borderTop: "1px solid #E7EDE8", paddingTop: "11px" },
+        // 도감 해설이 있으면 짧은 참고 설명은 숨긴다 — 같은 내용을 두 번 읽게 하지 않는다
+        desc: e.desc || "", hasDesc: !!e.desc && !e.lead,
+        leaf: e.leaf || "", hasLeaf: !!e.leaf && !e.lead, facts,
+        lead: e.lead || "", hasLead: !!e.lead,
+        flag: e.flag || "", hasFlag: !!e.flag,
+        tip: e.tip || "", hasTip: !!e.tip,
+        vs: e.vs || "", hasVs: !!e.vs,
+        // 부위별 해설은 그 부위 사진과 짝으로 보여준다 — 글만 읽는 것보다
+        // 사진을 나란히 두는 쪽이 실제로 나무를 찾아보게 만든다
+        hasParts: !!e.lead,
+        parts: [["새순", e.bud], ["잎", e.leaf], ["꽃", e.flower], ["열매", e.fruit], ["나무껍질", e.bark], ["자람", e.grow]]
+          .filter(([, v]) => !!v)
+          .map(([k, v]) => {
+            const gi = gal.findIndex(p => p.part === k);
+            return {
+              k, v,
+              thumb: gi >= 0 ? { backgroundImage: "url(\"" + gal[gi].url + "\")", backgroundSize: "cover", backgroundPosition: "center", width: "78px", height: "78px", borderRadius: "10px", flex: "none", cursor: "pointer", border: "1px solid #DCE5DD" } : null,
+              // 부위 사진은 위쪽 사진칸에서 크게 본다 — 해설 줄에는 글만 둔다
+              hasThumb: false,
+              open: null,
+              noPhoto: false,
+              labelStyle: { fontSize: "14px", fontWeight: 700, color: k === "자람" ? "#7B8C84" : "#1F5E63", width: "60px", flex: "none", paddingTop: "2px" },
+              textStyle: { fontSize: k === "자람" ? "14px" : "15px", lineHeight: 1.75, color: k === "자람" ? "#5C7069" : "#253128", flex: 1, textWrap: "pretty" }
+            };
+          }),
+        // 주제원 밖에만 있는 나무(부용·뿔남천 등)는 빈 제목을 보이지 않는다
+        // 안내도에 있는 주제원만 목록에 넣는다 — 녹지대·운동시설·교통섬은 주제원이 아니라 '녹지대'로 합쳐 적는다(2026-10-24 사용자: 녹지대라고 표현)
+        hasWhere: mainG.length > 0,
+        // 안내도에서 볼 때만 — 항공사진에서는 이미 붉은 점이 보인다
+        hasPhotoBtn: mainG.length > 0 && this.state.base !== "photo",
+        // 누르면 지도가 바로 보이게 위로 올린다 — 휴대폰은 지도 아래에 설명이 이어져 버튼이 화면 아래쪽에 있다(2026-10-28 사용자)
+        toPhoto: () => {
+          this.setState({ base: "photo", layer: "ortho", spWhere: null, nav: { k: this.startZoom(), tx: 0, ty: 0 } });
+          // 화면이 다시 그려진 뒤에 올린다 — 바로 올리면 다시 그리면서 스크롤이 멈췄다. '↑ 안내도로'와 같은 방식
+          setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 50);
+        },
+        // 목록은 많은 순 6곳까지 — 나머지 주제원과 주제원 밖 나무는 한 줄로 합쳐 숫자가 맞게 한다
+        hasOther: otherN > 0 || surveyN > 0 || noZoneN > 0 || mainG.length > 6,
+        otherNote: (mainG.length ? "그 밖에 " : "") + [
+          mainG.length > 6 ? "다른 주제원 " + (mainG.length - 6) + "곳 " + mainG.slice(6).reduce((a, [, n]) => a + n, 0).toLocaleString() + "주" : "",
+          otherN ? "녹지대 " + otherN.toLocaleString() + "주" : "",
+          surveyN ? "조성·조사 중인 주제원 " + surveyN.toLocaleString() + "주" : "",
+          noZoneN ? "구역 정리 중 " + noZoneN.toLocaleString() + "주" : ""
+        ].filter(Boolean).join(", "),
+        // 한두 그루뿐인 곳은 고사·이식으로 현장에 없을 수 있다 — 관람객이 헛걸음하지 않게 미리 알린다
+        // 전체 5그루 미만인 수종만 '등록 수목' 바로 아래에 한 줄 알린다(사용자 문구 그대로, 2026-10-27)
+        hasLowNote: counts.get(name) > 0 && counts.get(name) < 5,
+        where: mainG.slice(0, 6).map(([gname, n]) => {
+          const list = rows.filter(r => this.labelOf(r) === gname);
+          const mx = list.reduce((a, r) => a + r[0], 0) / list.length;
+          const my = list.reduce((a, r) => a + r[1], 0) / list.length;
+          const on = this.state.spWhere === gname;
+          return {
+            name: gname, meta: n.toLocaleString() + "주 · 도보 " + this.walkFor(gname, mx, my),
+            // 그루 수가 적은 곳에 '찾기 어려울 수 있어요'를 붙이지 않는다 — 찾아가라고 만든 안내라
+            // 연구사님 의견(2026-10-26)으로 뺐다. 고사·이식 안내는 '등록 수목' 아래 한 줄(hasLowNote)로만 한다
+            // 정원을 누르면 수종 선택을 유지한 채 그 정원의 그 나무들만 항공사진에 짚어준다
+            // 정원을 누르면 수종 선택을 유지한 채 그 정원의 그 나무들만 짚어준다.
+            // 화면(안내도/항공사진)은 보고 있던 그대로 둔다 — 누를 때마다 지도가
+            // 바뀌면 관람객이 방금 보던 위치를 잃는다
+            // 목록은 읽기만 한다 — 눌러도 안내도에 새로 보이는 게 없어 헷갈렸다(2026-10-28 사용자).
+            // 나무 위치는 이름 아래 '자세한 현장 위치 보기'로
+            style: { ...rowBtn, cursor: "default" }
+          };
+        })
+      };
+    }
+
+    let gd = null;
+    if (!viewSpecies) {
+      const name = this.state.garden;
+      const all = !name;
+      const rows = all ? (d ? d.d.filter(r => r[0] != null) : []) : this.rowsFor(name);
+      const cs = new Map();
+      // 대장에 같은 이름이 공백만 다르게 두 번 들어간 경우가 있어 합쳐서 센다
+      for (const r of rows) {
+        if (r[3] < 0) continue;
+        // 앞뒤 공백과 겹친 공백만 정리한다 — 품종명 안의 공백은 살려야 한다
+        const key = String(d.names[r[3]]).replace(/\s+/g, " ").trim();
+        if (!key) continue;
+        cs.set(key, (cs.get(key) || 0) + 1);
+      }
+      const ranked = [...cs.entries()].sort((a, b) => b[1] - a[1]);
+      const openList = !!this.state.allSpecies;
+      const top = openList ? ranked : ranked.slice(0, 8);
+      // 이달의 볼거리: 1~12월 모두 고를 수 있다
+      // 현장 개화 조사표(bloom-survey.js)를 먼저 보여주고 — 직원이 그 정원에서 꽃을 직접 본 기록이다 —
+      // 조사 기록이 없는 수종·달은 수목도감 해설의 꽃 시기(bloom-guide.js)로 채운다
+      // 어느 경우든 위치 대장에 그 주제원에 실제로 있는 나무만 그 주제원 이름을 붙인다 —
+      // 조사표의 정원 이름은 예전·지금 이름이 섞여 있어 그대로 믿지 않는다(2026-10-24 대조: 306건 중 146건만 일치)
+      const bl = this._bloom || {};
+      const where = this.speciesGardens();
+      const guide = window.BLOOM_GUIDE || {};
+      const have = (window.BLOOM_SURVEY || window.BLOOM_GUIDE) ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] : [];
+      const mo = this.state.month || (new Date().getMonth() + 1);
+      const now = [], kinds = [];
+      // 조사표·도감 이름은 위치 대장 이름으로 바꿔 쓴다 — 띄어쓰기·따옴표만 다른 같은 수종이
+      // 두 번 나오지 않게(예: 도감 "향나무'가이즈카'" = 대장 "향나무 '가이즈카'")
+      const key = s => s.replace(/[\s'‘’]/g, "");
+      if (this._regKeyOf !== where) { this._regKeyOf = where; this._regKey = new Map([...where.keys()].map(k => [key(k), k])); }
+      const regName = this._regKey;
+      // 배너에는 수목도감 141종만 넣는다 — 직원이 수목원에서 직접 본 수종이라, 관람객이 찾아갔는데 없는 일이 없게(2026-10-24)
+      // 도감 밖 수종은 현장 확인 후 bloom-guide.js 의 BANNER_EXTRA 에 넣으면 함께 나온다
+      const SG = window.SPECIES_GUIDE || {};
+      const extra = new Set((window.BANNER_EXTRA || []).map(key));
+      const inDogam = nm => !!(SG[nm] && SG[nm].guide) || extra.has(key(nm));
+      // 꽃이 작아 보기 힘든 수종(바람으로 꽃가루받이하는 참나무·단풍나무 무리 등)은 '꽃' 칩에서 뺀다
+      const flowerHide = new Set((window.BANNER_FLOWER_HIDE || []).map(key));
+      for (const [raw, e] of Object.entries(bl[mo] || {})) {
+        // 위치 대장에 나무가 없는 수종은 배너에 넣지 않는다 — 눌러도 지도에 보여 줄 곳이 없다(2026-10-24)
+        const nm = regName.get(key(raw));
+        if (!nm || !inDogam(nm) || now.some(x => x.name === nm)) continue;
+        // 도감 수종은 해설에 적은 꽃 시기(bloom-guide.js)만 따른다 — 조사표 달이 해설과 달라
+        // 관람객이 보는 해설과 배너가 어긋나지 않게(예: 일본조팝나무 '골드 마운드' 해설 5~6월인데 조사표 3월, 2026-10-24)
+        if (SG[nm] && SG[nm].guide) continue;
+        if (!all && !cs.has(nm)) continue;
+        // 칩에는 '꽃'·'열매'·'단풍'만 적는다 — 조사 기록인지 도감 시기인지는 관람객에게 구분하지 않는다(2026-10-24)
+        if (!flowerHide.has(key(nm))) now.push({ name: nm, kind: "꽃", n: "" });
+      }
+      for (const raw of guide[mo] || []) {
+        const nm = regName.get(key(raw));
+        if (!nm || !inDogam(nm) || now.some(x => x.name === nm)) continue;
+        if (!all && !cs.has(nm)) continue;
+        if (!flowerHide.has(key(nm))) now.push({ name: nm, kind: "꽃", n: "" });
+      }
+      const bloomN = now.length;
+      if (bloomN) kinds.push("꽃");
+      // 단풍·열매 칩(bloom-monthly.js) — 위치 대장에 이 주제원(전체 화면이면 수목원)에 있는 나무만
+      for (const [kind, list] of [["단풍", (window.LEAF_MONTH || {})[mo] || []],
+                                  ["열매", (window.FRUIT_MONTH || {})[mo] || []]]) {
+        let any = false;
+        for (const nm of list) if (cs.has(nm) && inDogam(nm) && !now.some(x => x.name === nm)) {
+          now.push({ name: nm, kind, n: cs.get(nm).toLocaleString() + "주" }); any = true;
+        }
+        if (any) kinds.push(kind);
+      }
+      const fb = SPOT_XY[name] || GATE;
+      const mx = rows.length ? rows.reduce((a, r) => a + r[0], 0) / rows.length : fb[0];
+      const my = rows.length ? rows.reduce((a, r) => a + r[1], 0) / rows.length : fb[1];
+      gd = {
+        // 화면에는 안내도 이름(SPOTS name)으로 — 재배장(조성 중)은 '재배장'으로 보인다(2026-10-28 사용자)
+        name: all ? "해운대수목원 전체" : ((SPOTS.find(s => s.id === name) || {}).name || name),
+        desc: all
+          ? "주제원을 눌러 그 구역의 안내를 보세요. 같은 주제원을 다시 누르면 이 화면으로 돌아옵니다."
+          // 조사 중인 주제원은 이 한 줄만 보인다 — 소개·볼거리·빈 목록 안내를 겹쳐 띄우지 않는다
+          : SURVEYING[name] ? SURVEYING[name]
+          : (PENDING[name] ? "안내도에 조성 중으로 표시된 곳. " : "")
+            // 한 구역을 둘로 나눈 곳(월가든1·2)은 원래 구역의 소개를 같이 쓴다
+            + (info.GARDEN_INFO[name] || info.GARDEN_INFO[(SPOTS.find(s => s.id === name) || {}).src] || "수목원을 이루는 곳."),
+        // 전체 화면에는 그루 수를 보이지 않는다 — 전시원을 골랐을 때만 보인다
+        stats: [
+          ...(all ? [] : [{ k: "등록 수목", v: rows.length ? rows.length.toLocaleString() + "주" : (d ? (/조성/.test(SURVEYING[name] || "") ? "조성 중" : "조사 중") : "…") }]),
+          // 수목원 전체 화면에서는 걷는 시간을 보이지 않는다 — 주제원을 골랐을 때만(2026-10-27 사용자)
+          ...(all ? [] : [{ k: "안내소에서", v: "도보 " + this.walkFor(name, mx, my) }])
+        ],
+        // never claim a surveyed garden is unsurveyed while the file is still loading
+        // 조사표가 로드되면 달 선택은 항상 보인다 — 이 정원에 그 달 기록이 없어도
+        // 다른 달로 넘길 수단이 있어야 한다
+        hasCal: have.length > 0 && !SURVEYING[name],
+        hasNow: now.length > 0,
+        noNow: have.length > 0 && now.length === 0,
+        noNowNote: mo + "월에는 이곳에서 소개할 꽃·열매·단풍이 없어요. 다른 달을 눌러 보세요.",
+        months: have.map(m => ({
+          label: m + "월",
+          pick: () => this.setState({ month: m }),
+          style: {
+            padding: "7px 12px", borderRadius: "999px", fontSize: "14px",
+            fontWeight: m === mo ? 700 : 500, cursor: "pointer", whiteSpace: "nowrap",
+            background: m === mo ? "#1F5E63" : "#F0F4F1",
+            color: m === mo ? "#fff" : "#4A5C54",
+            border: "1px solid " + (m === mo ? "#1F5E63" : "#DCE5DE"),
+            minHeight: "40px", display: "flex", alignItems: "center", flexShrink: 0
+          }
+        })),
+        hasMonths: have.length > 1,
+        // 전체 화면에서는 정원별로 흩어진 기록을 다 모아 보여준다 — 처음 온 사람이
+        // 지도만 보고 "이 달에 여기서 뭐가 피나"를 한 번에 알 수 있어야 한다
+        // 꽃·열매·단풍을 함께 보여 주므로 '볼거리'라고 부른다(2026-10-24)
+        nowTitle: mo + "월 볼거리" + (all && now.length ? " " + now.length + "종" : ""),
+        // 한 종류만 있으면 칩마다 같은 말이 반복되므로 머리말에서 뺀다
+        // 볼거리 머리말(시기 기준·날씨 안내)은 뺐다(2026-10-28 사용자)
+        nowNote: "",
+        // 전체 화면의 개화 칩에는 주제원 이름을 붙이지 않는다 — 칩이 많아 어수선하고, 눌러서 수종 화면에서 보면 된다(2026-10-24)
+        now: now.slice(0, all ? 200 : 40).map(b => ({
+          name: b.name,
+          n: b.kind,
+          kindStyle: {
+            fontSize: "13px", fontWeight: 700,
+            color: /단풍/.test(b.kind) ? "#A8790A" : /열매/.test(b.kind) ? "#8C2F2F" : "#1F5E63"
+          },
+          pick: pickSpecies(b.name),
+          style: {
+            display: "flex", alignItems: "baseline", gap: "7px", padding: "9px 13px",
+            background: "#fff", border: "1px solid #E4D6B4", borderRadius: "10px",
+            color: "#5E4410", cursor: "pointer", minHeight: "44px", boxSizing: "border-box",
+            whiteSpace: "nowrap", flexShrink: 0
+          }
+        })),
+        hasList: top.length > 0, empty: !!d && top.length === 0 && !SURVEYING[name],
+        emptyNote: "이 구역의 수목 조사가 진행 중입니다. 정리되면 이곳에서 안내해 드립니다.",
+        listTitle: openList ? (all ? "전체 수종" : "이곳의 전체 수종") : "이곳의 주요 수종",
+        listCount: ranked.length ? ranked.length.toLocaleString() + "종" : "",
+        canExpand: ranked.length > 8,
+        noExpand: ranked.length <= 8,
+        expandLabel: openList ? "접기" : "전체 " + ranked.length.toLocaleString() + "종 펼쳐보기",
+        toggleList: () => this.setState(s => ({ allSpecies: !s.allSpecies })),
+        expandBtn: {
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+          padding: "9px 14px", minHeight: "44px", background: openList ? "#1F5E63" : "#F0F5F1",
+          border: "1px solid " + (openList ? "#1F5E63" : "#DCE5DD"),
+          borderRadius: "999px", cursor: "pointer", flex: "none",
+          fontSize: "13px", fontWeight: 700, color: openList ? "#fff" : "#1F5E63",
+          whiteSpace: "nowrap", boxSizing: "border-box"
+        },
+        species: top.map(([n, c]) => ({
+          name: n, n: c.toLocaleString() + "주", pick: pickSpecies(n), style: rowBtn
+        }))
+      };
+    }
+
+    const tabStyle = on => ({
+      padding: wide ? "9px 16px" : "8px 13px", borderRadius: "999px", cursor: "pointer",
+      fontSize: wide ? "14px" : "13px", fontWeight: 700, whiteSpace: "nowrap",
+      background: on ? "#1F5E63" : "#FFFFFF", color: on ? "#FFFFFF" : "#41544D",
+      border: "1px solid " + (on ? "#1F5E63" : "#D5E0D8")
+    });
+
+    return {
+      shellRef: this.shellRef,
+      shell: (wide || fixedH)
+        // 넓은 화면(키오스크·PC)은 지도를 고정하고 오른쪽 패널만 스크롤한다
+        ? {
+          display: "flex", flexDirection: "column",
+          height: "100dvh", maxHeight: "100dvh", overflow: "hidden",
+          minHeight: 0, background: "#F4F7F4", position: "relative"
+        }
+        // 폰에서는 페이지 하나가 통째로 스크롤된다 — 지도 아래 칸만 움직이면
+        // 손가락을 어디에 둬야 하는지 알기 어렵고, 읽다가 지도로 돌아가기도 번거롭다
+        : {
+          display: "flex", flexDirection: "column",
+          minHeight: "100dvh", background: "#F4F7F4", position: "relative"
+        },
+      header: {
+        display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+        padding: wide ? "16px 24px" : "12px 14px", background: "#FFFFFF",
+        borderBottom: "1px solid #E2E9E4", flex: "none", flexWrap: "wrap",
+        // 폰에서 페이지가 흐르므로 머리글은 붙여 둔다 — 안내도/항공사진 전환이 항상 손에 닿게
+        position: (wide || fixedH) ? "static" : "sticky", top: 0, zIndex: 30
+      },
+      titleStyle: {
+        fontFamily: "'Apple SD Gothic Neo', 'Batang', serif", fontWeight: 700,
+        fontSize: wide ? "24px" : "18px", letterSpacing: "-.02em", whiteSpace: "nowrap"
+      },
+      subtitleStyle: { fontSize: wide ? "14px" : "12px", color: "#5C7069", whiteSpace: "nowrap" },
+      // 평면도·항공사진은 같은 나무 지도(base "photo")이고 바탕(layer)만 다르다 —
+      // 점 누르기·수종 위치·주제원 이름표가 두 화면에서 똑같이 동작한다(2026-10-25)
+      baseTabs: [["guide", "안내도", null], ["photo", "항공사진", "ortho"]].map(([k, label, layer]) => ({
+        // 항공사진은 1.7배에서 시작한다 — 이 배율·각도가 안내도와 가장 비슷하게 보인다
+        label,
+        pick: () => {
+          // 평면도(1배까지 줄임)에서 항공사진으로 넘어갈 때는 항공사진 최소 배율보다 작으면 처음 배율로 되돌린다
+          const keepNav = k === "photo" && base === "photo" && (layer === "plan" || (this.state.nav && this.state.nav.k >= this.startZoom()));
+          this.setState({ base: k, layer: layer || this.state.layer, nav: keepNav ? this.state.nav : { k: k === "photo" && layer !== "plan" ? this.startZoom() : 1, tx: 0, ty: 0 } });
+        },
+        style: tabStyle(base === k && (k === "guide" || this.state.layer === layer))
+      })),
+      body: {
+        flex: 1, minHeight: 0, display: "flex",
+        flexDirection: wide ? "row" : "column"
+      },
+      mapRef: this.mapRef,
+      // 안내도(이미지)는 CSS 확대, 항공사진(캔버스)은 그리는 배율로 확대된다
+      guideZoom: {
+        width: "100%", height: "100%", display: "flex",
+        alignItems: "var(--guide-align, center)", justifyContent: "center",
+        // 안쪽 안내도 틀이 이 칸의 크기(cqw·cqh)에 맞춰 그림 비율 그대로 들어간다
+        containerType: "size",
+        transformOrigin: "50% 50%",
+        transform: "translate(" + nav.tx + "px," + nav.ty + "px) scale(" + nav.k + ")"
+      },
+      // 1배에서도 끌어서 옮겼다면 '전체'로 돌아갈 단추를 계속 보여 준다
+      zoomed: nav.k > 1.01 || (base === "photo" && (Math.abs(nav.tx) > 1 || Math.abs(nav.ty) > 1)),
+      // 정원을 고른 상태에서는 '수목원 전체 개화수종'으로 돌아가는 길을
+      // 안내도 여백(파란 바탕)에 말풍선으로 알려 준다
+      hasAllHint: base === "guide" && !!(this.state.garden || this.state.species || this.state.tree),
+      allHintPick: clearSel,
+      // 아래 안내문(범례)과 같은 모양으로, 지도 위쪽 가운데에 둔다
+      allHintPos: {
+        position: "absolute", left: "50%", top: wide ? "16px" : "10px",
+        transform: "translateX(-50%)", zIndex: 8, cursor: "pointer",
+        background: "rgba(255,255,255,.94)", border: "1px solid #D5E0D8", borderRadius: "9px",
+        padding: wide ? "9px 13px" : "7px 10px", fontSize: wide ? "13px" : "12px",
+        color: "#1F5E63", fontWeight: 700, maxWidth: "88%", textAlign: "center", wordBreak: "keep-all",
+        boxShadow: "0 4px 12px rgba(20,40,30,.14)"
+      },
+      zoomIn: this.zoomIn,
+      zoomOut: this.zoomOut,
+      zoomReset: this.zoomReset,
+      isPhoto: this.state.base === "photo",
+      // 항공사진은 확대·축소(＋－)만 둔다 — 「전체 1.8배」·회전 단추는 관람객에게 필요 없다
+      showZoomHome: base === "guide" && nav.k > 1.01,
+      zoomLevel: nav.k > 1.01 ? (Math.round(nav.k * 10) / 10) + "배" : "",
+      zoomBar: {
+        position: "absolute", right: wide ? "16px" : "10px", bottom: wide ? "16px" : "10px",
+        zIndex: 8, display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-end"
+      },
+      zoomBtn: {
+        width: "46px", height: "46px", borderRadius: "13px", background: "rgba(255,255,255,.96)",
+        border: "1px solid #D5E0D8", boxShadow: "0 4px 12px rgba(20,40,30,.16)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: "24px", fontWeight: 700, color: "#1F5E63", cursor: "pointer",
+        userSelect: "none", boxSizing: "border-box"
+      },
+      zoomHome: {
+        minWidth: "46px", height: "40px", padding: "0 12px", borderRadius: "999px",
+        whiteSpace: "nowrap", flexShrink: 0,
+        background: "#1F5E63", color: "#fff", border: "1px solid #1F5E63",
+        boxShadow: "0 4px 12px rgba(20,40,30,.2)", display: "flex",
+        alignItems: "center", justifyContent: "center", fontSize: "13px",
+        fontWeight: 700, cursor: "pointer", userSelect: "none", boxSizing: "border-box"
+      },
+      mapWrap: {
+        position: "relative", background: "#E9F0F3", overflow: "hidden",
+        touchAction: "none",
+        flex: wide ? "1 1 auto" : (fixedH ? "0 0 46%" : "none"),
+        // 휴대폰 안내도는 그림 비율(1900×1344)에 맞춰 위아래 빈 공간을 없앤다 — 아래 안내 글줄 자리만 조금 더(2026-10-28 사용자)
+        height: (wide || fixedH) ? "auto" : (base === "guide" ? "calc(100vw * 1344 / 1900 + 52px)" : "58vh"),
+        // 휴대폰 안내도는 그림을 위에 붙이고, 아래 52px에 안내 글줄이 들어가 그림을 가리지 않게
+        "--guide-align": (wide || fixedH) ? "center" : "flex-start",
+        minWidth: 0, minHeight: 0
+      },
+      panel: {
+        display: "flex", flexDirection: "column", background: "#FFFFFF",
+        flex: wide ? "0 0 400px" : (fixedH ? "1 1 auto" : "none"), minHeight: 0,
+        borderLeft: wide ? "1px solid #E2E9E4" : "none",
+        borderTop: wide ? "none" : "1px solid #E2E9E4"
+      },
+      // 패널 안쪽 스크롤은 넓은 화면에서만 — 폰에서는 페이지 스크롤에 맡긴다
+      panelScroll: (wide || fixedH)
+        ? { flex: 1, minHeight: 0, overflowY: "auto" }
+        : { flex: "none" },
+      showToMap: !wide && !fixedH,
+      toMapStyle: {
+        position: "fixed", right: "14px", bottom: "18px", zIndex: 40, whiteSpace: "nowrap",
+        display: "inline-flex", alignItems: "center", gap: "6px",
+        padding: "12px 18px", minHeight: "44px", boxSizing: "border-box",
+        borderRadius: "999px", background: "rgba(26,38,33,.9)", color: "#fff",
+        fontSize: "14px", fontWeight: 700, cursor: "pointer",
+        boxShadow: "0 6px 18px rgba(0,0,0,.22)"
+      },
+      toMap: () => window.scrollTo({ top: 0, behavior: "smooth" }),
+      isPhoto: base === "photo",
+      isGuide: base === "guide",
+      canvasRef: this.canvasRef,
+      onCanvasClick: this.onCanvasClick,
+      // 항공사진에서는 남쪽 나대지가 프레임에 들어와 왼쪽 아래가 비므로, 숲이 우거진
+      // 북동쪽 위로 올린다. 안내도는 그대로 왼쪽 아래
+      legend: base === "photo"
+        ? {
+            position: "absolute", left: wide ? "16px" : "10px", top: wide ? "16px" : "10px",
+            background: "rgba(255,255,255,.94)", border: "1px solid #D5E0D8", borderRadius: "9px",
+            padding: wide ? "9px 13px" : "7px 10px", fontSize: wide ? "13px" : "12px",
+            color: "#41544D", fontWeight: 500, maxWidth: "88%"
+          }
+        : {
+            position: "absolute", left: wide ? "16px" : "10px", bottom: wide ? "16px" : "10px",
+            background: "rgba(255,255,255,.94)", border: "1px solid #D5E0D8", borderRadius: "9px",
+            padding: wide ? "9px 13px" : "7px 10px", fontSize: wide ? "13px" : "12px",
+            color: "#41544D", fontWeight: 500, maxWidth: "88%"
+          },
+      clearSel,
+      legendText: base === "guide"
+        ? (this.state.garden || this.state.species || this.state.tree
+            ? "빈 곳을 누르면 선택이 해제됩니다"
+            : "주제원을 눌러 그곳의 수종을 확인하세요")
+        : (treeMode && !this.state.species ? (td ? td.name + " · 다른 점을 누르면 그 나무로 바뀝니다" : "점을 누르면 그 나무가 무엇인지 알려줍니다 · 끌어서 옆을 볼 수 있어요")
+          : (viewSpecies ? (this.state.spWhere ? this.state.spWhere + "에 있는 " + this.state.species + " 위치를 붉은 점으로 표시했습니다" : this.state.species + " 위치를 붉은 점으로 표시했습니다")
+            : this.state.garden ? ((SPOTS.find(s => s.id === this.state.garden) || {}).name || this.state.garden) + " · 다시 누르면 선택이 해제됩니다"
+                                : "주제원을 눌러 안내를 확인하세요")),
+      spots: SPOTS.map(s => {
+        const id = s.id;
+        const on = !viewSpecies && id === this.state.garden;
+        // 수종을 고르면 그 나무가 있는 정원을 안내도에 주(株)수와 함께 표시한다
+        const spN = viewSpecies && spByG ? (spByG.get(id) || 0) : 0;
+        const hasSp = spN > 0;
+        const pickedSp = hasSp && this.state.spWhere === id;
+        // 미로원·동백숲은 상위 정원에 포함된 시설이라 별도 기록이 없다 — 눌러도
+        // "조사 중"만 뜨므로 이름만 남기고 클릭을 받지 않는다
+        const inert = INERT[id];
+        const ring = hasSp ? (pickedSp ? "#B03A22" : "#C4442E") : "#1F5E63";
+        return {
+          name: s.name, on: on && !inert,
+          // 수종을 보는 중이면 정원을 눌러 그 정원의 그 나무들만 짚어본다
+          pick: inert ? null : (hasSp
+            ? () => this.setState({ spWhere: pickedSp ? null : id })
+            : pickGarden(id)),
+          // 정원 이름과 주수는 안내도 인쇄 글씨와 오른쪽 목록에 이미 있다 —
+          // 지도 위에 겹쳐 쓰면 정작 가려야 할 안내도 글씨를 덮는다.
+          // 고른 정원 하나만 주수를 보여준다
+          hasCount: pickedSp,
+          count: spN.toLocaleString() + "주",
+          countStyle: {
+            position: "absolute", left: "50%", top: "34px", transform: "translateX(-50%)",
+            whiteSpace: "nowrap", background: "#fff", color: "#B03A22",
+            fontSize: "13px", fontWeight: 800, padding: "3px 9px", borderRadius: "999px",
+            border: "1px solid " + ring, boxShadow: "0 3px 9px rgba(20,40,30,.18)"
+          },
+          pos: {
+            position: "absolute", left: (s.x * 100) + "%", top: (s.y * 100) + "%",
+            transform: "translate(-50%,-50%)", cursor: inert ? "default" : "pointer",
+            zIndex: hasSp ? 6 : (on && !inert ? 5 : 1)
+          },
+          dot: {
+            width: hasSp ? (pickedSp ? "62px" : "54px") : (on ? "58px" : "46px"),
+            height: hasSp ? (pickedSp ? "62px" : "54px") : (on ? "58px" : "46px"),
+            borderRadius: "50%",
+            background: hasSp
+              ? (pickedSp ? "rgba(176,58,34,.22)" : "rgba(196,68,46,.13)")
+              : (on ? "rgba(31,94,99,.16)" : "transparent"),
+            border: (hasSp || on) ? "3px solid " + ring : "3px solid transparent",
+            boxSizing: "border-box",
+            transition: "width .16s ease, height .16s ease, background .16s ease, border-color .16s ease"
+          },
+          tag: {
+            position: "absolute", left: "50%", bottom: "42px", transform: "translateX(-50%)",
+            whiteSpace: "nowrap", background: hasSp ? ring : "#1F5E63", color: "#fff",
+            fontSize: "14px", fontWeight: 700, padding: "7px 13px", borderRadius: "9px",
+            boxShadow: "0 6px 16px rgba(20,40,30,.24)"
+          }
+        };
+      }),
+      searchBox: {
+        position: "relative", padding: wide ? "18px 20px 12px" : "14px 16px 10px", flex: "none"
+      },
+      searchInput: {
+        width: "100%", height: wide ? "48px" : "46px", padding: "0 42px 0 16px",
+        borderRadius: "11px", border: "1px solid #D5E0D8", background: "#F7FAF8",
+        fontSize: "16px", color: "#1A2621", outline: "none"
+      },
+      query: this.state.query,
+      hasQuery: !!q,
+      onQuery: e => this.setState({ query: e.target.value }),
+      clearQuery: () => this.setState({ query: "" }),
+      showResults: results.length > 0,
+      // 찾는 이름이 없을 때 아무것도 안 뜨면 고장인 줄 안다 — 없다고 알려 준다
+      noResults: !!q && results.length === 0,
+      resultCount: "검색 결과 " + hits.length + "종"
+        + (hits.length > results.length ? " · 개체수가 많은 30종을 먼저 보여드립니다" : ""),
+      results: results.map(([n, c]) => ({
+        name: n, n: c.toLocaleString() + "주", pick: pickSpecies(n), style: rowBtn
+      })),
+      viewTree: !!td,
+      viewSpecies: viewSpecies && !td,
+      viewGarden: !viewSpecies && !td,
+      td: td || { no: "", name: "", sci: "", sciParts: [], desc: "", hasDesc: false, garden: "", sameN: "", facts: [], btn: {}, toSpecies: null, toGarden: null, hasGarden: false },
+      sp: sp || { name: "", sci: "", sciParts: [], fam: "", leaf: "", hasLeaf: false, desc: "", hasDesc: false, facts: [], where: [],
+        lead: "", hasLead: false, flag: "", hasFlag: false, tip: "", hasTip: false, vs: "", hasVs: false, hasParts: false, parts: [] },
+      gd: gd || { name: "", desc: "", stats: [], hasList: false, empty: false, emptyNote: "", species: [], listTitle: "", listCount: "", canExpand: false, noExpand: false, expandLabel: "", toggleList: null, expandBtn: {}, hasNow: false, hasCal: false, noNow: false, noNowNote: "", nowTitle: "", nowNote: "", now: [], months: [], hasMonths: false },
+      nameStyle: {
+        fontFamily: "'Apple SD Gothic Neo', 'Batang', serif", fontWeight: 700,
+        fontSize: wide ? "28px" : "24px", letterSpacing: "-.02em"
+      },
+      photoBox: {
+        position: "relative", overflow: "hidden",
+        height: wide ? "300px" : "260px", flex: "none",   // 사진이 잘 보이게 높이를 키움(2026-10-25 사용자)
+        backgroundColor: "#EDF1EE",
+        backgroundImage: cover
+          ? "url(" + cover + ")"
+          : "repeating-linear-gradient(135deg, rgba(120,140,130,.16) 0 2px, transparent 2px 11px)",
+        backgroundSize: cover ? "cover" : "auto",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        // 사진이 없으면 「사진 준비 중」을 칸 가운데에 둔다
+        display: "flex", alignItems: cover ? "flex-end" : "center", justifyContent: cover ? "space-between" : "center",
+        gap: 10, padding: "14px", cursor: cover ? "zoom-in" : "default"
+      },
+      // 사진은 파일 이름으로 연결된다 — assets/photos/<수종명>.jpg 를 넣으면 바로 뜬다.
+      // 화면 파일을 고칠 필요가 없어 담당자가 직접 채울 수 있다
+      photoNoteStyle: {
+        fontSize: "15px", fontWeight: 700, color: "#7E918A",
+        background: "rgba(255,255,255,.85)", borderRadius: "999px", padding: "7px 16px",
+        display: cover ? "none" : "block"
+      },
+      photoNote: "사진 준비 중",
+      // 사진칸은 가로로 잘려 보이므로, 눌러서 원본 비율 그대로 크게 보게 한다
+      openPhoto: cover ? () => this.setState({ pv: 0 }) : null,
+      photoBadge: gal.length > 1 ? "사진 " + gal.length + "장 보기" : "크게 보기",
+      coverCredit, hasCoverCredit: !!(cover && coverCredit),
+      coverCreditStyle: { fontSize: "11.5px", lineHeight: 1.45, color: "#7E918A", padding: "6px 20px 0", textAlign: "right" },
+      photoBadgeStyle: {
+        whiteSpace: "nowrap",
+        display: cover ? "block" : "none", flex: "none",
+        fontSize: "13px", fontWeight: 700, color: "#FFFFFF",
+        background: "rgba(16, 32, 24, .62)", borderRadius: "999px",
+        padding: "6px 13px", backdropFilter: "blur(2px)"
+      },
+      pvOpen: pvOpen,
+      pv: {
+        imgStyle: {
+          width: "100%", height: "100%", borderRadius: "10px",
+          backgroundImage: pvOpen ? "url(" + gal[pvIdx].url + ")" : "none",
+          backgroundSize: "contain", backgroundPosition: "center",
+          backgroundRepeat: "no-repeat"
+        },
+        name: spName, sci: sp ? sp.sci : "", sciParts: this.sciParts(sp ? sp.sci : ""),
+        close: () => this.setState({ pv: null }),
+        credit: pvCredit || "",
+        creditStyle: { fontSize: "13px", color: "#A9BCB2", textAlign: "center", padding: "0 6px" },
+        // 같은 부위 안에서 넘기기 — 부위 단추는 한 개씩만 두고, 여러 장이면 화살표로 넘긴다
+        multi: pvSame.length > 1,
+        counter: (pvSame.indexOf(pvIdx) + 1) + " / " + pvSame.length,
+        counterStyle: { fontSize: "14px", fontWeight: 700, color: "#D6E2DA", minWidth: "54px", textAlign: "center" },
+        prev: (e) => { if (e) e.stopPropagation(); this.setState({ pv: pvSame[(pvSame.indexOf(pvIdx) + pvSame.length - 1) % pvSame.length] }); },
+        next: (e) => { if (e) e.stopPropagation(); this.setState({ pv: pvSame[(pvSame.indexOf(pvIdx) + 1) % pvSame.length] }); },
+        ...(() => {
+          const base = {
+            width: "44px", height: "44px", borderRadius: "50%", cursor: "pointer", flex: "none",
+            background: wide ? "rgba(255,255,255,.14)" : "rgba(12,20,16,.55)", color: "#FFFFFF", fontSize: "20px", fontWeight: 700,
+            display: "flex", alignItems: "center", justifyContent: "center"
+          };
+          // 넓은 화면은 사진 양옆, 휴대폰은 사진 위에 겹쳐 둔다
+          const over = side => wide ? base : { ...base, position: "absolute", top: "50%", transform: "translateY(-50%)", [side]: "4px", zIndex: 2 };
+          return { prevStyle: over("left"), nextStyle: over("right") };
+        })(),
+        tabs: pvParts.map(part => {
+          const first = gal.findIndex(p => p.part === part);
+          const n = gal.filter(p => p.part === part).length;
+          const on = gal[pvIdx] && gal[pvIdx].part === part;
+          return {
+            label: n > 1 ? part + " " + n : part,
+            pick: (e) => { if (e) e.stopPropagation(); this.setState({ pv: first }); },
+            style: {
+              padding: "9px 18px", borderRadius: "999px", cursor: "pointer",
+              fontSize: "14px", fontWeight: 700,
+              background: on ? "#FFFFFF" : "rgba(255,255,255,.14)",
+              color: on ? "#1A2621" : "#D6E2DA"
+            }
+          };
+        })
+      },
+      footer: {
+        flex: "none", borderTop: "1px solid #E7EDE8",
+        padding: wide ? "12px 20px 16px" : "10px 16px 14px",
+        display: "flex", justifyContent: "space-between", gap: 10,
+        fontSize: "12px", color: "#798C84", flexWrap: "wrap"
+      },
+      totalSpecies: d ? counts.size : "—",
+      dataNote: "자료 기준 2026. 3."
+    };
+  }
+}
+
+</script>
+
+
+</body></html>
