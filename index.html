@@ -36,6 +36,8 @@
 <script src="data/bloom-monthly.js"></script>
 <script src="data/species-info.js"></script>
 <script src="data/species-guide.js"></script>
+<script src="data/sights-settings.js"></script>
+<script src="data/sights-runtime.js"></script>
 <script src="data/roses.js"></script>
 <!-- 평면도는 보류(2026-10-27 사용자: 작업물이 좋아지면 넣기). 다시 켜려면 아래 주석을 풀고 baseTabs에 ["photo", "평면도", "plan"]을 넣는다.
      시범판 그대로는 git 태그 plan-trial-2026-10-27, 보관본은 바탕화면 해운대수목원\평면도_보관_2026.10.27
@@ -759,6 +761,7 @@ class Component extends DCLogic {
 
   _waitData(n) {
     n = n || 0;
+    if (window.applySightsSettings && window.SIGHTS_SETTINGS && window.SPECIES_GUIDE && window.BLOOM_GUIDE && window.LEAF_MONTH && window.FRUIT_MONTH) window.applySightsSettings();
     if (window.BLOOM_SURVEY) this._bloom = window.BLOOM_SURVEY;
     if (window.PHOTO_CREDITS) this._credits = window.PHOTO_CREDITS;
     if (window.SPECIES && window.GARDEN_INFO && (!this._info || (window.SPECIES_GUIDE && !this._info.merged)))
@@ -766,12 +769,12 @@ class Component extends DCLogic {
     if (window.TREES_COMPACT && !this._raw) { this._raw = window.TREES_COMPACT; this.applyData(); }
     else if (window.ROSES && this._raw && !(this._roseOf && this._roseOf.size)) this.applyData();
     else this.forceUpdate();
-    const done = window.TREES_COMPACT && window.SPECIES && window.BLOOM_SURVEY && window.BLOOM_GUIDE && window.PHOTO_CREDITS && window.BLOOM_MONTH;
+    const done = window.applySightsSettings && window.SIGHTS_SETTINGS && window.SPECIES_GUIDE && window.LEAF_MONTH && window.FRUIT_MONTH && window.TREES_COMPACT && window.SPECIES && window.BLOOM_SURVEY && window.BLOOM_GUIDE && window.PHOTO_CREDITS && window.BLOOM_MONTH;
     if (!done && n < 150) setTimeout(() => this._waitData(n + 1), 100);
   }
 
   applyData() {
-    // 미확정 나무(확인불가·이름 없음 등)는 data/trees.js 에 아예 들어 있지 않다 —
+    // 미확정 나무는 공개용 data/trees.js에서 제외한다.
     // tools/make_public_trees.ps1 이 공개용 파일을 만들 때 뺀다
     const data = this.addRoses(this.mergePublic(this._raw));
     buildRemap(data);
@@ -2049,6 +2052,8 @@ class Component extends DCLogic {
         // 도감 수종은 해설에 적은 꽃 시기(bloom-guide.js)만 따른다 — 조사표 달이 해설과 달라
         // 관람객이 보는 해설과 배너가 어긋나지 않게(예: 일본조팝나무 '골드 마운드' 해설 5~6월인데 조사표 3월, 2026-10-24)
         if (SG[nm] && SG[nm].guide) continue;
+        // 관리 설정이 있으면 조사표 대신 저장한 꽃 월만 따른다. 원본 조사 기록은 보존한다.
+        if (Object.prototype.hasOwnProperty.call(window.SIGHTS_SETTINGS || {}, nm)) continue;
         if (!all && !cs.has(nm)) continue;
         // 칩에는 '꽃'·'열매'·'단풍'만 적는다 — 조사 기록인지 도감 시기인지는 관람객에게 구분하지 않는다(2026-10-24)
         if (!flowerHide.has(key(nm))) now.push({ name: nm, kind: "꽃", n: "" });

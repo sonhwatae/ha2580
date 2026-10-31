@@ -1,0 +1,1 @@
+window.SIGHTS_SETTINGS = {};
