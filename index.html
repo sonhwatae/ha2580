@@ -96,7 +96,9 @@
         </div>
       </sc-if>
 
-      <div style="{{ legend }}">{{ legendText }}</div>
+      <sc-if value="{{ hasLegend }}" hint-placeholder-val="{{ true }}">
+        <div style="{{ legend }}">{{ legendText }}</div>
+      </sc-if>
 
       <sc-if value="{{ hasAllHint }}" hint-placeholder-val="{{ false }}">
         <div sc-camel-on-click="{{ allHintPick }}" style="{{ allHintPos }}">이곳을 눌러 수목원 전체 볼거리를 확인하세요</div>
@@ -2310,6 +2312,8 @@ class Component extends DCLogic {
             color: "#41544D", fontWeight: 500, maxWidth: "88%"
           },
       clearSel,
+      // 항공사진에서 나무·수종을 고르면 지도 위 안내 상자를 숨긴다 — 내용은 오른쪽 안내에 나온다(2026-10-31 사용자)
+      hasLegend: !(treeMode && (td || this.state.species)),
       legendText: base === "guide"
         ? (this.state.garden || this.state.species || this.state.tree
             ? "빈 곳을 누르면 선택이 해제됩니다"
